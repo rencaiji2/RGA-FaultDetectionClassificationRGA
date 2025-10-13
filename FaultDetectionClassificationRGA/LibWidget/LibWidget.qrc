@@ -1,0 +1,10 @@
+<RCC>
+    <qresource prefix="/Chart">
+        <file>picture/title.png</file>
+        <file>picture/Widget_menu.png</file>
+        <file>picture/Widget_save.png</file>
+        <file>picture/Widget_xic.png</file>
+        <file>picture/Widget_zoom_in.png</file>
+        <file>picture/Widget_zoom_out.png</file>
+    </qresource>
+</RCC>

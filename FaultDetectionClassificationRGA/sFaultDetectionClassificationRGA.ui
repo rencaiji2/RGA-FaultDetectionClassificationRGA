@@ -1,0 +1,1128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>sFaultDetectionClassificationRGA</class>
+ <widget class="QMainWindow" name="sFaultDetectionClassificationRGA">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1360</width>
+    <height>876</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>sFaultDetectionClassificationRGA</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout_4">
+    <item>
+     <widget class="QWidget" name="widget_4" native="true">
+      <property name="maximumSize">
+       <size>
+        <width>16777215</width>
+        <height>48</height>
+       </size>
+      </property>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="QPushButton" name="UI_PB_DEVICE_CONFIG_FDC">
+         <property name="minimumSize">
+          <size>
+           <width>32</width>
+           <height>48</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>设备管理</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QPushButton" name="btnClearPnts">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>48</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>清空点数据</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_9">
+         <property name="text">
+          <string>双击数据点添加</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="UI_PNTS_COMBOX">
+         <property name="minimumSize">
+          <size>
+           <width>200</width>
+           <height>48</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="btnOpenPostSoftware">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>48</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>查看原始数据</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QScrollArea" name="scrollArea">
+      <property name="widgetResizable">
+       <bool>true</bool>
+      </property>
+      <widget class="QWidget" name="scrollAreaWidgetContents">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>1340</width>
+         <height>757</height>
+        </rect>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_5">
+        <property name="spacing">
+         <number>0</number>
+        </property>
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QTabWidget" name="tabWidget">
+          <property name="currentIndex">
+           <number>0</number>
+          </property>
+          <property name="iconSize">
+           <size>
+            <width>16</width>
+            <height>16</height>
+           </size>
+          </property>
+          <widget class="QWidget" name="tab">
+           <attribute name="title">
+            <string>统计图表</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="verticalLayout_2">
+            <property name="spacing">
+             <number>0</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QSplitter" name="splitter_2">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <widget class="QWidget" name="widget" native="true">
+               <layout class="QVBoxLayout" name="verticalLayout_3">
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QPushButton" name="UI_PB_OK_FDC">
+                  <property name="minimumSize">
+                   <size>
+                    <width>80</width>
+                    <height>48</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <family>微软雅黑</family>
+                    <pointsize>10</pointsize>
+                   </font>
+                  </property>
+                  <property name="text">
+                   <string>载入</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QTreeWidget" name="UI_TW_EQ_LIST_FDC">
+                  <column>
+                   <property name="text">
+                    <string/>
+                   </property>
+                  </column>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QWidget" name="widget_2" native="true">
+                  <layout class="QHBoxLayout" name="horizontalLayout_2">
+                   <property name="leftMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="topMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="rightMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>0</number>
+                   </property>
+                  </layout>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+              <widget class="QSplitter" name="splitter">
+               <property name="orientation">
+                <enum>Qt::Vertical</enum>
+               </property>
+               <widget class="QWidget" name="UI_W_TOOLS_FDC" native="true">
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>128</height>
+                 </size>
+                </property>
+                <layout class="QVBoxLayout" name="verticalLayout">
+                 <item>
+                  <widget class="QGroupBox" name="groupBox_3">
+                   <property name="title">
+                    <string>参数</string>
+                   </property>
+                   <layout class="QGridLayout" name="gridLayout_2">
+                    <item row="2" column="0">
+                     <spacer name="verticalSpacer_2">
+                      <property name="orientation">
+                       <enum>Qt::Vertical</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>20</width>
+                        <height>40</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                    <item row="0" column="2">
+                     <widget class="Line" name="line">
+                      <property name="minimumSize">
+                       <size>
+                        <width>5</width>
+                        <height>0</height>
+                       </size>
+                      </property>
+                      <property name="orientation">
+                       <enum>Qt::Vertical</enum>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="5">
+                     <widget class="QDateEdit" name="dateEditStart">
+                      <property name="minimumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="7">
+                     <widget class="QDateEdit" name="dateEditEnd">
+                      <property name="minimumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="9">
+                     <widget class="QLabel" name="label_4">
+                      <property name="text">
+                       <string>控制限数据：</string>
+                      </property>
+                      <property name="alignment">
+                       <set>Qt::AlignCenter</set>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="10">
+                     <widget class="QComboBox" name="comCL_mode">
+                      <property name="minimumSize">
+                       <size>
+                        <width>120</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="0">
+                     <widget class="QRadioButton" name="rBtnTimeStep">
+                      <property name="text">
+                       <string>时间范围：</string>
+                      </property>
+                      <property name="checked">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="6">
+                     <widget class="QLabel" name="label_2">
+                      <property name="text">
+                       <string>止：</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="11">
+                     <widget class="QCheckBox" name="chkShowCL">
+                      <property name="text">
+                       <string>CL是否显示</string>
+                      </property>
+                      <property name="checked">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="0">
+                     <widget class="QLabel" name="label_3">
+                      <property name="text">
+                       <string>算法选择：</string>
+                      </property>
+                      <property name="alignment">
+                       <set>Qt::AlignCenter</set>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="3">
+                     <widget class="QRadioButton" name="rBtnTimArea">
+                      <property name="text">
+                       <string>时间区间：</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="1">
+                     <widget class="QComboBox" name="UI_CB_DATE_FDC">
+                      <property name="minimumSize">
+                       <size>
+                        <width>80</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <item>
+                       <property name="text">
+                        <string>三个月</string>
+                       </property>
+                      </item>
+                      <item>
+                       <property name="text">
+                        <string>一个月</string>
+                       </property>
+                      </item>
+                      <item>
+                       <property name="text">
+                        <string>一周</string>
+                       </property>
+                      </item>
+                     </widget>
+                    </item>
+                    <item row="1" column="1">
+                     <widget class="QComboBox" name="comAlgType">
+                      <property name="minimumSize">
+                       <size>
+                        <width>0</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <item>
+                       <property name="text">
+                        <string>平均值</string>
+                       </property>
+                      </item>
+                      <item>
+                       <property name="text">
+                        <string>差值</string>
+                       </property>
+                      </item>
+                     </widget>
+                    </item>
+                    <item row="0" column="4">
+                     <widget class="QLabel" name="label_5">
+                      <property name="text">
+                       <string>起：</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="8">
+                     <spacer name="horizontalSpacer_3">
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>40</width>
+                        <height>20</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                    <item row="1" column="3" colspan="6">
+                     <layout class="QHBoxLayout" name="horizontalLayout_3">
+                      <item>
+                       <widget class="QLabel" name="label_8">
+                        <property name="text">
+                         <string>EQ Recipe:</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QComboBox" name="UI_CB_EQ_RECIPE">
+                        <item>
+                         <property name="text">
+                          <string>ALL</string>
+                         </property>
+                        </item>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLabel" name="label">
+                        <property name="text">
+                         <string>ChamberID:</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QComboBox" name="UI_CB_CHAMBERID">
+                        <item>
+                         <property name="text">
+                          <string>ALL</string>
+                         </property>
+                        </item>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLabel" name="label_6">
+                        <property name="text">
+                         <string>LotID:</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QComboBox" name="UI_CB_LOTID">
+                        <item>
+                         <property name="text">
+                          <string>ALL</string>
+                         </property>
+                        </item>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLabel" name="label_7">
+                        <property name="text">
+                         <string>WaferID:</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QComboBox" name="UI_CB_WAFERID">
+                        <item>
+                         <property name="text">
+                          <string>ALL</string>
+                         </property>
+                        </item>
+                       </widget>
+                      </item>
+                      <item>
+                       <spacer name="horizontalSpacer_2">
+                        <property name="orientation">
+                         <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>40</width>
+                          <height>20</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                     </layout>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+               <widget class="QWidget" name="UI_W_CHART_FDC" native="true">
+                <property name="styleSheet">
+                 <string notr="true">background-color: rgb(255, 255, 255);</string>
+                </property>
+                <layout class="QVBoxLayout" name="UI_LAYOUT_CHART_FDC"/>
+               </widget>
+              </widget>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="tab_2">
+           <attribute name="title">
+            <string>配方管理</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="UI_LAYOUT_RECIPE_CONFIG_FDC">
+            <property name="spacing">
+             <number>0</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="tab_3">
+           <attribute name="title">
+            <string>配置管理</string>
+           </attribute>
+           <layout class="QGridLayout" name="gridLayout_3">
+            <item row="0" column="0">
+             <widget class="QGroupBox" name="groupBox">
+              <property name="title">
+               <string>CL线映射</string>
+              </property>
+              <layout class="QGridLayout" name="gridLayout">
+               <item row="1" column="0">
+                <widget class="QWidget" name="widget_3" native="true">
+                 <layout class="QHBoxLayout" name="horizontalLayout_4">
+                  <item>
+                   <spacer name="horizontalSpacer_4">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>40</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                  <item>
+                   <widget class="QPushButton" name="btnOpen">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>25</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>加载配置</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QPushButton" name="btnSave">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>25</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>保存</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item row="0" column="0">
+                <widget class="QTableWidget" name="tableWgt_ChmaerID">
+                 <row>
+                  <property name="text">
+                   <string>1</string>
+                  </property>
+                 </row>
+                 <row>
+                  <property name="text">
+                   <string>2</string>
+                  </property>
+                 </row>
+                 <row>
+                  <property name="text">
+                   <string>3</string>
+                  </property>
+                 </row>
+                 <row>
+                  <property name="text">
+                   <string>4</string>
+                  </property>
+                 </row>
+                 <row>
+                  <property name="text">
+                   <string>5</string>
+                  </property>
+                 </row>
+                 <row>
+                  <property name="text">
+                   <string>6</string>
+                  </property>
+                 </row>
+                 <row>
+                  <property name="text">
+                   <string>7</string>
+                  </property>
+                 </row>
+                 <row>
+                  <property name="text">
+                   <string>8</string>
+                  </property>
+                 </row>
+                 <column>
+                  <property name="text">
+                   <string>ChamerID</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>条目(N2/Ar)</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>下限</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>上限</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>条目(N2/H2O)</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>下限</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>上限</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>条目(O2/H2O)</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>下限</string>
+                  </property>
+                 </column>
+                 <column>
+                  <property name="text">
+                   <string>上限</string>
+                  </property>
+                 </column>
+                 <item row="0" column="0">
+                  <property name="text">
+                   <string>TM1_CH1</string>
+                  </property>
+                 </item>
+                 <item row="0" column="1">
+                  <property name="text">
+                   <string>N2/Ar</string>
+                  </property>
+                 </item>
+                 <item row="0" column="2">
+                  <property name="text">
+                   <string>1</string>
+                  </property>
+                 </item>
+                 <item row="0" column="3">
+                  <property name="text">
+                   <string>1.5</string>
+                  </property>
+                 </item>
+                 <item row="0" column="4">
+                  <property name="text">
+                   <string>N2/H2O</string>
+                  </property>
+                 </item>
+                 <item row="0" column="5">
+                  <property name="text">
+                   <string>1</string>
+                  </property>
+                 </item>
+                 <item row="0" column="6">
+                  <property name="text">
+                   <string>1.5</string>
+                  </property>
+                 </item>
+                 <item row="0" column="7">
+                  <property name="text">
+                   <string>O2/H2O</string>
+                  </property>
+                 </item>
+                 <item row="0" column="8">
+                  <property name="text">
+                   <string>1</string>
+                  </property>
+                 </item>
+                 <item row="0" column="9">
+                  <property name="text">
+                   <string>1.5</string>
+                  </property>
+                 </item>
+                 <item row="1" column="0">
+                  <property name="text">
+                   <string>TM1_CH2</string>
+                  </property>
+                 </item>
+                 <item row="1" column="1">
+                  <property name="text">
+                   <string>N2/Ar</string>
+                  </property>
+                 </item>
+                 <item row="1" column="2">
+                  <property name="text">
+                   <string>2</string>
+                  </property>
+                 </item>
+                 <item row="1" column="3">
+                  <property name="text">
+                   <string>2.5</string>
+                  </property>
+                 </item>
+                 <item row="1" column="4">
+                  <property name="text">
+                   <string>N2/H2O</string>
+                  </property>
+                 </item>
+                 <item row="1" column="5">
+                  <property name="text">
+                   <string>2</string>
+                  </property>
+                 </item>
+                 <item row="1" column="6">
+                  <property name="text">
+                   <string>2.5</string>
+                  </property>
+                 </item>
+                 <item row="1" column="7">
+                  <property name="text">
+                   <string>O2/H2O</string>
+                  </property>
+                 </item>
+                 <item row="1" column="8">
+                  <property name="text">
+                   <string>2</string>
+                  </property>
+                 </item>
+                 <item row="1" column="9">
+                  <property name="text">
+                   <string>2.5</string>
+                  </property>
+                 </item>
+                 <item row="2" column="0">
+                  <property name="text">
+                   <string>TM1_CH3</string>
+                  </property>
+                 </item>
+                 <item row="2" column="1">
+                  <property name="text">
+                   <string>N2/Ar</string>
+                  </property>
+                 </item>
+                 <item row="2" column="2">
+                  <property name="text">
+                   <string>3</string>
+                  </property>
+                 </item>
+                 <item row="2" column="3">
+                  <property name="text">
+                   <string>3.5</string>
+                  </property>
+                 </item>
+                 <item row="2" column="4">
+                  <property name="text">
+                   <string>N2/H2O</string>
+                  </property>
+                 </item>
+                 <item row="2" column="5">
+                  <property name="text">
+                   <string>3</string>
+                  </property>
+                 </item>
+                 <item row="2" column="6">
+                  <property name="text">
+                   <string>3.5</string>
+                  </property>
+                 </item>
+                 <item row="2" column="7">
+                  <property name="text">
+                   <string>O2/H2O</string>
+                  </property>
+                 </item>
+                 <item row="2" column="8">
+                  <property name="text">
+                   <string>3</string>
+                  </property>
+                 </item>
+                 <item row="2" column="9">
+                  <property name="text">
+                   <string>3.5</string>
+                  </property>
+                 </item>
+                 <item row="3" column="0">
+                  <property name="text">
+                   <string>TM1_CH4</string>
+                  </property>
+                 </item>
+                 <item row="3" column="1">
+                  <property name="text">
+                   <string>N2/Ar</string>
+                  </property>
+                 </item>
+                 <item row="3" column="2">
+                  <property name="text">
+                   <string>4</string>
+                  </property>
+                 </item>
+                 <item row="3" column="3">
+                  <property name="text">
+                   <string>4.5</string>
+                  </property>
+                 </item>
+                 <item row="3" column="4">
+                  <property name="text">
+                   <string>N2/H2O</string>
+                  </property>
+                 </item>
+                 <item row="3" column="5">
+                  <property name="text">
+                   <string>4</string>
+                  </property>
+                 </item>
+                 <item row="3" column="6">
+                  <property name="text">
+                   <string>4.5</string>
+                  </property>
+                 </item>
+                 <item row="3" column="7">
+                  <property name="text">
+                   <string>O2/H2O</string>
+                  </property>
+                 </item>
+                 <item row="3" column="8">
+                  <property name="text">
+                   <string>4</string>
+                  </property>
+                 </item>
+                 <item row="3" column="9">
+                  <property name="text">
+                   <string>4.5</string>
+                  </property>
+                 </item>
+                 <item row="4" column="0">
+                  <property name="text">
+                   <string>TM1_CH5</string>
+                  </property>
+                 </item>
+                 <item row="4" column="1">
+                  <property name="text">
+                   <string>N2/Ar</string>
+                  </property>
+                 </item>
+                 <item row="4" column="2">
+                  <property name="text">
+                   <string>5</string>
+                  </property>
+                 </item>
+                 <item row="4" column="3">
+                  <property name="text">
+                   <string>5.5</string>
+                  </property>
+                 </item>
+                 <item row="4" column="4">
+                  <property name="text">
+                   <string>N2/H2O</string>
+                  </property>
+                 </item>
+                 <item row="4" column="5">
+                  <property name="text">
+                   <string>5</string>
+                  </property>
+                 </item>
+                 <item row="4" column="6">
+                  <property name="text">
+                   <string>5.5</string>
+                  </property>
+                 </item>
+                 <item row="4" column="7">
+                  <property name="text">
+                   <string>O2/H2O</string>
+                  </property>
+                 </item>
+                 <item row="4" column="8">
+                  <property name="text">
+                   <string>5</string>
+                  </property>
+                 </item>
+                 <item row="4" column="9">
+                  <property name="text">
+                   <string>5.5</string>
+                  </property>
+                 </item>
+                 <item row="5" column="0">
+                  <property name="text">
+                   <string>TM1_CH6</string>
+                  </property>
+                 </item>
+                 <item row="5" column="1">
+                  <property name="text">
+                   <string>N2/Ar</string>
+                  </property>
+                 </item>
+                 <item row="5" column="2">
+                  <property name="text">
+                   <string>6</string>
+                  </property>
+                 </item>
+                 <item row="5" column="3">
+                  <property name="text">
+                   <string>6.5</string>
+                  </property>
+                 </item>
+                 <item row="5" column="4">
+                  <property name="text">
+                   <string>N2/H2O</string>
+                  </property>
+                 </item>
+                 <item row="5" column="5">
+                  <property name="text">
+                   <string>6</string>
+                  </property>
+                 </item>
+                 <item row="5" column="6">
+                  <property name="text">
+                   <string>6.5</string>
+                  </property>
+                 </item>
+                 <item row="5" column="7">
+                  <property name="text">
+                   <string>O2/H2O</string>
+                  </property>
+                 </item>
+                 <item row="5" column="8">
+                  <property name="text">
+                   <string>6</string>
+                  </property>
+                 </item>
+                 <item row="5" column="9">
+                  <property name="text">
+                   <string>6.5</string>
+                  </property>
+                 </item>
+                 <item row="6" column="0">
+                  <property name="text">
+                   <string>IDLE</string>
+                  </property>
+                 </item>
+                 <item row="6" column="1">
+                  <property name="text">
+                   <string>N2/Ar</string>
+                  </property>
+                 </item>
+                 <item row="6" column="2">
+                  <property name="text">
+                   <string>7</string>
+                  </property>
+                 </item>
+                 <item row="6" column="3">
+                  <property name="text">
+                   <string>7.5</string>
+                  </property>
+                 </item>
+                 <item row="6" column="4">
+                  <property name="text">
+                   <string>N2/H2O</string>
+                  </property>
+                 </item>
+                 <item row="6" column="5">
+                  <property name="text">
+                   <string>7</string>
+                  </property>
+                 </item>
+                 <item row="6" column="6">
+                  <property name="text">
+                   <string>7.5</string>
+                  </property>
+                 </item>
+                 <item row="6" column="7">
+                  <property name="text">
+                   <string>O2/H2O</string>
+                  </property>
+                 </item>
+                 <item row="6" column="8">
+                  <property name="text">
+                   <string>7</string>
+                  </property>
+                 </item>
+                 <item row="6" column="9">
+                  <property name="text">
+                   <string>7.5</string>
+                  </property>
+                 </item>
+                 <item row="7" column="0">
+                  <property name="text">
+                   <string>CHE</string>
+                  </property>
+                 </item>
+                 <item row="7" column="1">
+                  <property name="text">
+                   <string>N2/Ar</string>
+                  </property>
+                 </item>
+                 <item row="7" column="2">
+                  <property name="text">
+                   <string>0.1</string>
+                  </property>
+                 </item>
+                 <item row="7" column="3">
+                  <property name="text">
+                   <string>0.2</string>
+                  </property>
+                 </item>
+                 <item row="7" column="4">
+                  <property name="text">
+                   <string>N2/H2O</string>
+                  </property>
+                 </item>
+                 <item row="7" column="5">
+                  <property name="text">
+                   <string>0.3</string>
+                  </property>
+                 </item>
+                 <item row="7" column="6">
+                  <property name="text">
+                   <string>0.4</string>
+                  </property>
+                 </item>
+                 <item row="7" column="7">
+                  <property name="text">
+                   <string>O2/H2O</string>
+                  </property>
+                 </item>
+                 <item row="7" column="8">
+                  <property name="text">
+                   <string>0.5</string>
+                  </property>
+                 </item>
+                 <item row="7" column="9">
+                  <property name="text">
+                   <string>0.6</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1360</width>
+     <height>23</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
