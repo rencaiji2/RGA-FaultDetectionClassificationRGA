@@ -119,6 +119,8 @@ private slots:
     //2025-1008 找到需要chk的条目
     void setChkItem(const QVariantMap& i_dataMap);
 
+    void drawAlarmArea();
+
 private:
     void initUI();
     void initChart();//散点图原始数据chart
@@ -191,26 +193,8 @@ private:
     QMap<QString,QMap<QString,QPair<QString,QString>>> m_chamerIDConf;
     QVariantMap m_chamerIDConfMap;
     int m_version = 1;//2025-1005 临时增加 0  代表 广东版即原版  1 代表北京版，临时版
-
-    //超限值的告警颜色展示 -- 使用类似背景色的样式展示
-    // 告警区域
-    QAreaSeries* m_upperAlarmArea = nullptr;    // 上告警区域
-    QAreaSeries* m_lowerAlarmArea = nullptr;    // 下告警区域
-    QLineSeries* m_upperBoundSeries = nullptr;  // 上边界线（用于面积图）
-    QLineSeries* m_lowerBoundSeries = nullptr;  // 下边界线（用于面积图）
-
     double m_alarmUpValue = 0.0;    // 告警上线值
     double m_alarmDownValue = 0.0;  // 告警下线值
-    bool m_showAlarmArea = true;    // 是否显示告警区域
-
-    void createAlarmAreas();
-    void updateAlarmAreas();
-    void setAlarmValues(double up, double down);
-    void setAlarmAreasVisible(bool visible);
-    void clearAlarmAreas();
-    void updateAlarmAreaColors(const QColor& upperColor = QColor(255, 0, 0, 30),
-                              const QColor& lowerColor = QColor(255, 0, 0, 30));
-    //---------
 private:
     bool m_debugBool = true;//控制是否输出
     Ui::sFaultDetectionClassificationRGA ui;

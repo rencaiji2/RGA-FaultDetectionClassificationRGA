@@ -263,6 +263,57 @@ public:
         return QList<QAbstractSeries*>();
     }
 
+    //移除- 注意不是删除【只是相当于把数据轴从chart中弄出来，指针还在】
+    void removeSeries(QAbstractSeries* series);
+    void addSeries(QAbstractSeries* series);
+
+    //关于告警区域---------------------
+    // 在 TChartWidget.h 的 private 部分添加成员变量
+private:
+    // 背景区域系列
+    QAreaSeries* m_upperAreaSeries = nullptr;     // 上部区域
+    QAreaSeries* m_lowerAreaSeries = nullptr;     // 下部区域
+
+    // 边界线系列（用于面积图）
+    QLineSeries* m_upperTopLine = nullptr;        // 上部区域上边界
+    QLineSeries* m_upperBottomLine = nullptr;     // 上部区域下边界
+    QLineSeries* m_lowerTopLine = nullptr;        // 下部区域上边界
+    QLineSeries* m_lowerBottomLine = nullptr;     // 下部区域下边界
+
+    // 区域值
+    double m_upBase = 0;                    // 上部区域基线
+    double m_upLine = 5;                    // 上部区域线
+    double m_downBase = -5;                  // 下部区域基线
+    double m_downLine = -10;                  // 下部区域线
+
+    // 显示控制
+    bool m_showUpperArea = true;               // 是否显示上部区域
+    bool m_showLowerArea = true;               // 是否显示下部区域
+
+    // 初始化标志
+    bool m_areasInitialized = false;            // 区域是否已初始化
+
+// 在 TChartWidget.h 的 public 部分添加公共函数
+public:
+    // 区域背景相关函数
+    void initializeAreaSeries();                    // 初始化区域系列
+    void setShowUpperArea(bool show);              // 设置上部区域显示
+    void setShowLowerArea(bool show);              // 设置下部区域显示
+    void setShowAreas(bool upperShow, bool lowerShow); // 同时设置两个区域显示
+    void updateAreaValues(double upBase, double upLine, double downBase, double downLine); // 更新区域值
+    void updateAreaDisplay();                       // 更新区域显示
+    void setAreaColors(const QColor& upperColor = QColor(255, 0, 0, 30),
+                      const QColor& lowerColor = QColor(255, 0, 0, 30)); // 设置区域颜色
+    bool isUpperAreaVisible() const { return m_showUpperArea; }
+    bool isLowerAreaVisible() const { return m_showLowerArea; }
+
+    // 获取区域系列（用于外部控制层次）
+    QAreaSeries* getUpperAreaSeries() const { return m_upperAreaSeries; }
+    QAreaSeries* getLowerAreaSeries() const { return m_lowerAreaSeries; }
+
+
+    //-----------end---------------------
+
 signals:
     void sProcessStart(QStringList);//格式化的标志符的列表【用于后处理软件的启动配置】
     // 点选相关的信号

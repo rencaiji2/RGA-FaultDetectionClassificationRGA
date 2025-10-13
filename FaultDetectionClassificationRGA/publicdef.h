@@ -515,6 +515,8 @@ public:
     double m_lclValueManual = -1.0;
     double m_min_x = 0;//x轴的最小值
     double m_max_x = 0;//x轴的最大值
+    double m_min_y = 0;//y轴的最小值
+    double m_max_y = 0;//y轴的最大值
 };
 
 class sPublicDefSingleton

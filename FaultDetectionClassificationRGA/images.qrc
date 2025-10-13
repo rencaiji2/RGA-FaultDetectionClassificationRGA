@@ -1,0 +1,14 @@
+<RCC>
+    <qresource prefix="/icon">
+        <file>picture/check_96.png</file>
+        <file>picture/chkeck_48.png</file>
+        <file>picture/database_40.png</file>
+        <file>picture/database_80.png</file>
+        <file>picture/doc_48.png</file>
+        <file>picture/doc_96.png</file>
+        <file>picture/folder_48.png</file>
+        <file>picture/folder_96.png</file>
+        <file>picture/folder1_48.png</file>
+        <file>picture/folder1_96.png</file>
+    </qresource>
+</RCC>

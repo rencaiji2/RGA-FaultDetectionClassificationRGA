@@ -477,6 +477,22 @@ void TChartWidget::resetView()
     m_chartView->resetView();
 }
 
+void TChartWidget::removeSeries(QAbstractSeries *series)
+{
+    if(m_chart == nullptr || series == nullptr){
+        return;
+    }
+    m_chart->removeSeries(series);
+}
+
+void TChartWidget::addSeries(QAbstractSeries *series)
+{
+    if(m_chart == nullptr || series == nullptr){
+        return;
+    }
+    m_chart->addSeries(series);
+}
+
 void TChartWidget::createLineChart()
 {
     for (auto it = m_seriesData.constBegin(); it != m_seriesData.constEnd(); ++it) {
@@ -1266,4 +1282,199 @@ void TChartWidget::handleSeriesDoubleClicked(const QPointF &point)
 //    //qDebug().noquote() << "Series clicked at-xy:  " << x << " - " << y;
 //    QToolTip::showText(QCursor::pos(), formatTooltip(point));
 //}
+
+
+//以下  area告警区域
+void TChartWidget::initializeAreaSeries()
+{
+    if (!m_chart || m_areasInitialized) {
+        return;
+    }
+
+    // 创建边界线系列
+    m_upperTopLine = new QLineSeries();
+    m_upperBottomLine = new QLineSeries();
+    m_lowerTopLine = new QLineSeries();
+    m_lowerBottomLine = new QLineSeries();
+
+    m_upperTopLine->setName("upperTopLine");
+    m_upperBottomLine->setName("upperBottomLine");
+    m_lowerTopLine->setName("lowerTopLine");
+    m_lowerBottomLine->setName("lowerBottomLine");
+
+    m_upperTopLine->setColor(Qt::red);
+    m_upperBottomLine->setColor(Qt::red);
+    m_lowerTopLine->setColor(Qt::red);
+    m_lowerBottomLine->setColor(Qt::red);
+    // 隐藏边界线
+    m_upperTopLine->setVisible(false);
+    m_upperBottomLine->setVisible(false);
+    m_lowerTopLine->setVisible(false);
+    m_lowerBottomLine->setVisible(false);
+
+    // 创建面积图系列
+    m_upperAreaSeries = new QAreaSeries(m_upperTopLine, m_upperBottomLine);
+    m_upperAreaSeries->setName("UpperArea");
+    m_upperAreaSeries->setVisible(false);
+    m_upperAreaSeries->setPen(QPen(Qt::NoPen));
+    m_upperAreaSeries->setBrush(QBrush(QColor(255, 0, 0, 30))); // 默认淡红色
+    m_upperAreaSeries->setOpacity(0.3);
+
+    m_lowerAreaSeries = new QAreaSeries(m_lowerTopLine, m_lowerBottomLine);
+    m_lowerAreaSeries->setName("LowerArea");
+    m_lowerAreaSeries->setVisible(false);
+    m_lowerAreaSeries->setPen(QPen(Qt::NoPen));
+    m_lowerAreaSeries->setBrush(QBrush(QColor(255, 0, 0, 30))); // 默认淡红色
+    m_lowerAreaSeries->setOpacity(0.3);
+
+    // 添加到图表
+    m_chart->addSeries(m_upperAreaSeries);
+    m_chart->addSeries(m_lowerAreaSeries);
+
+    // 关联轴（假设轴已经设置完成）
+    if (m_xAxis && m_yAxis) {
+        m_upperAreaSeries->attachAxis(m_xAxis);
+        m_upperAreaSeries->attachAxis(m_yAxis);
+        m_lowerAreaSeries->attachAxis(m_xAxis);
+        m_lowerAreaSeries->attachAxis(m_yAxis);
+    }
+
+    m_areasInitialized = true;
+
+    // 设置默认值
+    updateAreaValues(0.0, 1.0, -1.0, 0.0);
+}
+
+void TChartWidget::setShowUpperArea(bool show)
+{
+    m_showUpperArea = show;
+    if (m_upperAreaSeries) {
+        m_upperAreaSeries->setVisible(show && m_areasInitialized);
+    }
+    updateAreaDisplay();
+}
+
+void TChartWidget::setShowLowerArea(bool show)
+{
+    m_showLowerArea = show;
+    if (m_lowerAreaSeries) {
+        m_lowerAreaSeries->setVisible(show && m_areasInitialized);
+    }
+    updateAreaDisplay();
+}
+
+void TChartWidget::setShowAreas(bool upperShow, bool lowerShow)
+{
+    setShowUpperArea(upperShow);
+    setShowLowerArea(lowerShow);
+}
+
+void TChartWidget::updateAreaValues(double upBase, double upLine, double downBase, double downLine)
+{
+    m_upBase = upBase;
+    m_upLine = upLine;
+    m_downBase = downBase;
+    m_downLine = downLine;
+
+    // 如果还没有初始化，先初始化
+    if (!m_areasInitialized) {
+        initializeAreaSeries();
+    }
+
+    // 更新数据点
+    if (m_areasInitialized) {
+        // 获取X轴范围
+        qreal xMin = 0, xMax = 100; // 默认值
+        if (m_xAxis) {
+            if (QValueAxis* valueAxis = qobject_cast<QValueAxis*>(m_xAxis)) {
+                xMin = valueAxis->min();
+                xMax = valueAxis->max();
+            } else if (QDateTimeAxis* dateAxis = qobject_cast<QDateTimeAxis*>(m_xAxis)) {
+                xMin = dateAxis->min().toMSecsSinceEpoch();
+                xMax = dateAxis->max().toMSecsSinceEpoch();
+            }
+        }
+
+        // 更新上部区域数据
+        if (m_upperTopLine && m_upperBottomLine) {
+            m_upperTopLine->clear();
+            m_upperBottomLine->clear();
+
+            /*
+            //调测
+            {
+                QPointF startPnt(xMin, qMax(upBase, upLine));
+                QPointF endPnt(xMax, qMax(upBase, upLine));
+                QList<QPointF> pnts = {startPnt,endPnt};
+                m_upperTopLine->replace(pnts);
+                qDebug().noquote() << "m_upperTopLine:  " << pnts;
+            }
+            {
+                QPointF startPnt(xMin, qMin(upBase, upLine));
+                QPointF endPnt(xMax, qMin(upBase, upLine));
+                QList<QPointF> pnts = {startPnt,endPnt};
+                m_upperBottomLine->replace(pnts);
+                qDebug().noquote() << "m_upperBottomLine:  " << pnts;
+            }
+
+            QLineSeries* upLine = m_upperAreaSeries->upperSeries();
+            QList<QPointF> upPnts = upLine->points();
+
+            QLineSeries* lowLine = m_upperAreaSeries->lowerSeries();
+            QList<QPointF> lowPnts = lowLine->points();
+
+            qDebug().noquote() << "upPnts:  " << upPnts;
+            qDebug().noquote() << "lowPnts:  " << lowPnts;
+            */
+
+            *m_upperTopLine << QPointF(xMin, qMax(upBase, upLine)) << QPointF(xMax, qMax(upBase, upLine));
+            *m_upperBottomLine << QPointF(xMin, qMin(upBase, upLine)) << QPointF(xMax, qMin(upBase, upLine));
+        }
+
+        // 更新下部区域数据
+        if (m_lowerTopLine && m_lowerBottomLine) {
+            m_lowerTopLine->clear();
+            m_lowerBottomLine->clear();
+
+            *m_lowerTopLine << QPointF(xMin, qMax(downBase, downLine)) << QPointF(xMax, qMax(downBase, downLine));
+            *m_lowerBottomLine << QPointF(xMin, qMin(downBase, downLine)) << QPointF(xMax, qMin(downBase, downLine));
+        }
+    }
+
+    updateAreaDisplay();
+}
+
+void TChartWidget::updateAreaDisplay()
+{
+    if (!m_areasInitialized) {
+        return;
+    }
+
+    if (m_upperAreaSeries) {
+        m_upperAreaSeries->setVisible(m_showUpperArea);
+    }
+
+    if (m_lowerAreaSeries) {
+        m_lowerAreaSeries->setVisible(m_showLowerArea);
+    }
+
+    if (m_chart) {
+        m_chart->update();
+    }
+}
+
+void TChartWidget::setAreaColors(const QColor &upperColor, const QColor &lowerColor)
+{
+    if (!m_areasInitialized) {
+        initializeAreaSeries();
+    }
+
+    if (m_upperAreaSeries) {
+        m_upperAreaSeries->setBrush(QBrush(upperColor));
+    }
+
+    if (m_lowerAreaSeries) {
+        m_lowerAreaSeries->setBrush(QBrush(lowerColor));
+    }
+}
 

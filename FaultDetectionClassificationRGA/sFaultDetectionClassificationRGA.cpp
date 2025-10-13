@@ -453,6 +453,11 @@ void sFaultDetectionClassificationRGA::plotTimeSeriesData(TChartWidget *chartWid
     yAxisConfig.labelAngle = 0;  // Y轴标签保持水平
     chartWidget->setYAxisConfig(yAxisConfig);
 
+    //赋值Y轴的点
+    PublicDef* pDef = sPublicDefSingleton::GetInstance();
+    pDef->m_min_y = yAxisConfig.min;
+    pDef->m_max_y = yAxisConfig.max;
+
     // 预定义颜色列表
     /*
     QList<QColor> colors = {
@@ -1002,11 +1007,18 @@ void sFaultDetectionClassificationRGA::updateControlLinesManual(const QString &s
     double lcl = clPair.first.toDouble();
     double ucl = clPair.second.toDouble();
 
+    PublicDef* pDef = sPublicDefSingleton::GetInstance();
     //赋值告警值，【给背景面积图绘制使用】
     m_alarmUpValue = ucl;
     m_alarmDownValue = lcl;
 
-    PublicDef* pDef = sPublicDefSingleton::GetInstance();
+    if(pDef->m_max_y <= ucl){
+        pDef->m_max_y = ucl;
+    }
+    if(pDef->m_min_y >= lcl){
+        pDef->m_min_y = lcl;
+    }
+
     //开始绘制
     // 获取X轴范围来创建水平线
     QChart* chart = m_chartWgt->getChart();
@@ -2090,7 +2102,7 @@ void sFaultDetectionClassificationRGA::on_comCL_mode_currentIndexChanged(int ind
         updateControlLinesManual(seriesName);
 
         //绘制告警区域
-        //setAlarmValues(m_alarmUpValue,m_alarmDownValue);
+        //drawAlarmArea();
     }
 
 }
@@ -2185,7 +2197,7 @@ void sFaultDetectionClassificationRGA::on_btnDefine_clicked()
 
     QMap<QString, EquipmentGroupInfo> infoMap = XMLReadHelp::parseEquipmentGroupsFromXML(m_chartFDCXML_content);
 
-    sDefinePlotDataDlg* dlg = new sDefinePlotDataDlg(infoMap,m_chamerIDConfMap);
+    sDefinePlotDataDlg* dlg = new sDefinePlotDataDlg(infoMap,m_chamerIDConfMap,m_systemMap);
     if(dlg->exec() == QDialog::Accepted)
     {
         QVariantMap dataMap = dlg->getData();
@@ -2196,48 +2208,35 @@ void sFaultDetectionClassificationRGA::on_btnDefine_clicked()
             return;
         }
 
+        //把主界面的时间重新设置
+        bool enabledDate = dataMap["enable_date"].toBool();
+        if(enabledDate)
+        {
+            //1.设置为时间段查询
+            ui.rBtnTimArea->setChecked(true);
+
+            //2.赋值
+            QDate startDate = dataMap["start_date"].toDate();
+            QDate endDate = dataMap["end_date"].toDate();
+            ui.dateEditStart->setDate(startDate);
+            ui.dateEditEnd->setDate(endDate);
+        }
+
+
         //选中条目【具体的 N2/Ar  N2/H2O  O2/H2O 】
         setChkItem(dataMap);
 
-        //chamberID控件的值处理 - 临时方法[防止sDefinePlotDataDlg中 CHE 与 TM这种交叉，即tree选择与com选择岔开来了]
-        //CHE的chamberID就自动为CHE
+        QString chamberID = dataMap["chamberID"].toString();
+        qDebug().noquote() << "on_btnDefine_clicked-chamberID:  " << chamberID;
         int itemCount = ui.UI_CB_CHAMBERID->count();
         QStringList itemTexts;
         for (int var = 0; var < itemCount; ++var) {
             itemTexts.append(ui.UI_CB_CHAMBERID->itemText(var));
         }
-        QString chamberName = dataMap["chamberName"].toString();
-        if(chamberName.toUpper() == "CHE")
-        {
-            int index = itemTexts.indexOf("CHE");
-            if(index > 0){
-                ui.UI_CB_CHAMBERID->setCurrentIndex(index);
-            }
-        }
-        else
-        {
-            //TM的要是选的不是TM相关的就选中第一个TM相关的
-            QString selectedTxt = dataMap["com_box"].toString();
-            int validIndex = -1;
-            if(!selectedTxt.contains("TM1")){
-                for (int i=0;i<itemTexts.count();i++) {
-                    QString tmp = itemTexts.value(i);
-                    if(tmp.toUpper().contains("TM1")){
-                        validIndex = i;
-                        break;
-                    }
-                }
-                if(validIndex > 0){
-                    ui.UI_CB_CHAMBERID->setCurrentIndex(validIndex);
-                }
-            }
-            else
-            {
-                int index = itemTexts.indexOf(selectedTxt);
-                if(index > 0){
-                    ui.UI_CB_CHAMBERID->setCurrentIndex(index);
-                }
-            }
+
+        int index = itemTexts.indexOf(chamberID);
+        if(index > 0){
+            ui.UI_CB_CHAMBERID->setCurrentIndex(index);
         }
 
         //2.执行载入
@@ -2264,7 +2263,7 @@ void sFaultDetectionClassificationRGA::setChkItem(const QVariantMap &i_dataMap)
     QString equipmentGroupName = i_dataMap["equipmentGroupName"].toString();
     QString chamberName = i_dataMap["chamberName"].toString();
     QString name = i_dataMap["name"].toString();
-    QString chamberID_selected = i_dataMap["com_box"].toString();
+    //QString chamberID = i_dataMap["chamberID"].toString();
     //1.界面勾选
 
     for (int i =0;i < topLevelCount;i++) {

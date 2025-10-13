@@ -155,6 +155,19 @@ void sFaultDetectionClassificationRGA::on_btnSave_clicked()
 {
     saveChamerIDConf();
     QMessageBox::information(nullptr,tr("提示"),tr("保存成功！"));
+
+    //同步刷新
+    QStringList chamberID_lst = m_chamerIDConfMap.keys();
+    QString curText = ui.UI_CB_CHAMBERID->currentText();
+    ui.UI_CB_CHAMBERID->clear();
+    ui.UI_CB_CHAMBERID->addItem("ALL");
+    ui.UI_CB_CHAMBERID->addItems(chamberID_lst);
+
+    //按需恢复原先选择
+    int index  = chamberID_lst.indexOf(curText);
+    if(index >= 0){
+        ui.UI_CB_CHAMBERID->setCurrentText(curText);
+    }
 }
 
 void sFaultDetectionClassificationRGA::onConfTablecustomContextMenuRequested(const QPoint &pos)
