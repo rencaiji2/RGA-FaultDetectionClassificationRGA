@@ -35,6 +35,7 @@ SOURCES += \
     sConfigure/sControlScan.cpp \
     sConfigure/sEditSIM.cpp \
     sConfigure/sJsCalculate.cpp \
+    sDefinePlotDataDlg.cpp \
     sFaultDetectionClassificationRGA.cpp \
     sFaultDetectionClassificationRGA/sChamerIDConf.cpp \
     sFaultDetectionClassificationRGA/sParsedQuery.cpp \
@@ -64,6 +65,7 @@ HEADERS += \
     sConfigure/cParamCPM.h \
     sConfigure/sEditSIM.h \
     sConfigure/sJsCalculate.h \
+    sDefinePlotDataDlg.h \
     sFaultDetectionClassificationRGA.h \
     sRecipeManage.h \
     sRecipeManageFDC.h
@@ -75,6 +77,7 @@ FORMS += \
     sConfigure.ui \
     sConfigure/sEditSIM.ui \
     sConfigure/sJsCalculate.ui \
+    sDefinePlotDataDlg.ui \
     sFaultDetectionClassificationRGA.ui \
     sRecipeManage.ui \
     sRecipeManageFDC.ui

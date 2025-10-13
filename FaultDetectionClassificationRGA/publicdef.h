@@ -16,27 +16,7 @@
 #include <QTreeWidget>
 #include <QQueue>
 #include <QSet>
-#include <QGraphicsRectItem>
-#include <QPen>
 
-// 自定义背景区域项
-class BackgroundAreaItem : public QGraphicsRectItem
-{
-public:
-    BackgroundAreaItem(const QRectF& rect, const QColor& color, QGraphicsItem* parent = nullptr)
-        : QGraphicsRectItem(rect, parent)
-    {
-        setBrush(QBrush(color));
-        setPen(QPen(Qt::NoPen));  // 无边框
-        setZValue(-1000);         // 确保在底层显示
-        setOpacity(0.2);          // 设置透明度，使其不会完全遮挡数据
-    }
-
-    // 可选：添加更新函数
-    void updateRect(const QRectF& newRect) {
-        setRect(newRect);
-    }
-};
 
 // 定义Channel信息结构
 struct ChannelInfo {
@@ -50,6 +30,18 @@ struct ChannelInfo {
     ChannelInfo(const QString& n, const QString& v, const QString& ch = "",
                 const QString& eg = "", const QString& ip = "")
         : name(n), value(v), chamberName(ch), equipmentGroupName(eg), equipmentGroupIP(ip) {}
+
+    QVariantMap toVariantMap()
+    {
+        QVariantMap dataMap;
+        dataMap["name"] = name;
+        dataMap["value"] = value;
+        dataMap["chamberName"] = chamberName;
+        dataMap["equipmentGroupName"] = equipmentGroupName;
+        dataMap["equipmentGroupIP"] = equipmentGroupIP;
+
+        return dataMap;
+    }
 };
 
 // 定义EquipmentGroup信息结构
@@ -59,6 +51,32 @@ struct EquipmentGroupInfo {
     QString groupNo;
     QString groupRecipe;
     QList<ChannelInfo> channels;
+
+    QString info2String()
+    {
+        QStringList tmpList;
+        tmpList.append(QString("-----groupInfo----------"));
+        tmpList.append(QString("groupName:%1").arg(groupName));
+        tmpList.append(QString("groupIP:%1").arg(groupIP));
+        tmpList.append(QString("groupNo:%1").arg(groupNo));
+        //tmpList.append(QString("groupRecipe:%1").arg(groupRecipe));
+        tmpList.append(QString("-----channels-begin------------------"));
+        foreach (ChannelInfo channel, channels) {
+            QString name = channel.name;
+            QString value = channel.value;
+            QString chamberName = channel.chamberName;
+            QString equipmentGroupName = channel.equipmentGroupName;
+            QString equipmentGroupIP = channel.equipmentGroupIP;
+
+            QString tmp = QString("name:%1,value:%2,chamberName:%3,equipmentGroupName:%4,equipmentGroupIP:%5")
+                            .arg(name).arg(value).arg(chamberName).arg(equipmentGroupName).arg(equipmentGroupIP);
+
+            tmpList.append(tmp);
+        }
+        tmpList.append("--------------channels-end-------------------");
+
+        return tmpList.join("\n");
+    }
 };
 
 // 解析Value字段为详细信息
@@ -83,6 +101,19 @@ signals:
 
 
 public:
+    // 清除当前节点选中状态[前提是已经chk的,即如果没有chk的不管，原先chk没有显示的也不管(否则这个会显示出没chk)]
+    static void clearAllCheckState(QTreeWidgetItem* item) {
+        if(item == nullptr) return;
+
+        Qt::CheckState chk = item->checkState(0);
+        if(chk == Qt::CheckState::Checked){
+            item->setCheckState(0, Qt::Unchecked);
+        }
+
+        for(int i = 0; i < item->childCount(); ++i) {
+            clearAllCheckState(item->child(i)); // 递归处理子节点
+        }
+    }
     // 逐步检查是否有重复元素（更高效，找到第一个重复就返回）
     static bool hasDuplicates(const QStringList& list)
     {

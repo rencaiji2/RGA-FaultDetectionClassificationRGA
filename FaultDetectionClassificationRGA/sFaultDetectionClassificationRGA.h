@@ -18,6 +18,7 @@
 #include "publicdef.h"
 #include "XMLReadHelp.h"
 #include "LibAlgorithm/PublicAlgorithm.h"
+#include "sDefinePlotDataDlg.h"
 
 using namespace QtCharts;
 
@@ -114,9 +115,9 @@ private slots:
     void onCopyAction();
     void onDeleteAction();
 
-
-    //告警区域绘制
-    void onCreateAlarmArea();
+    void on_btnDefine_clicked();
+    //2025-1008 找到需要chk的条目
+    void setChkItem(const QVariantMap& i_dataMap);
 
 private:
     void initUI();
@@ -193,16 +194,22 @@ private:
 
     //超限值的告警颜色展示 -- 使用类似背景色的样式展示
     // 告警区域
-    void createBackgroundAreas(double up, double down);
-    void clearBackgroundAreas();
-    void updateBackgroundAreas();
-    void setBackgroundAreas(double up, double down);
-    void onChartUpdated();
-    BackgroundAreaItem* m_upperBackground = nullptr;    // 上部背景区域
-    BackgroundAreaItem* m_lowerBackground = nullptr;    // 下部背景区域
+    QAreaSeries* m_upperAlarmArea = nullptr;    // 上告警区域
+    QAreaSeries* m_lowerAlarmArea = nullptr;    // 下告警区域
+    QLineSeries* m_upperBoundSeries = nullptr;  // 上边界线（用于面积图）
+    QLineSeries* m_lowerBoundSeries = nullptr;  // 下边界线（用于面积图）
 
     double m_alarmUpValue = 0.0;    // 告警上线值
     double m_alarmDownValue = 0.0;  // 告警下线值
+    bool m_showAlarmArea = true;    // 是否显示告警区域
+
+    void createAlarmAreas();
+    void updateAlarmAreas();
+    void setAlarmValues(double up, double down);
+    void setAlarmAreasVisible(bool visible);
+    void clearAlarmAreas();
+    void updateAlarmAreaColors(const QColor& upperColor = QColor(255, 0, 0, 30),
+                              const QColor& lowerColor = QColor(255, 0, 0, 30));
     //---------
 private:
     bool m_debugBool = true;//控制是否输出

@@ -253,6 +253,16 @@ public:
         return m_seriesData;
     }
 
+    //重新关联轴 【主要是层级的调整，chart是先创建的在底层】
+    // 获取所有系列的函数
+    QList<QAbstractSeries*> getAllSeries() const
+    {
+        if (m_chart) {
+            return m_chart->series();
+        }
+        return QList<QAbstractSeries*>();
+    }
+
 signals:
     void sProcessStart(QStringList);//格式化的标志符的列表【用于后处理软件的启动配置】
     // 点选相关的信号

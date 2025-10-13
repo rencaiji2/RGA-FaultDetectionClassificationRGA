@@ -214,9 +214,6 @@ void sFaultDetectionClassificationRGA::loadSystemConf()
 }
 
 
-
-
-
 //void sFaultDetectionClassificationRGA::on_pushButton_4_clicked()
 //{
 //    QVariantList params;
@@ -2093,8 +2090,7 @@ void sFaultDetectionClassificationRGA::on_comCL_mode_currentIndexChanged(int ind
         updateControlLinesManual(seriesName);
 
         //绘制告警区域
-        //QTimer::singleShot(500, this, &sFaultDetectionClassificationRGA::onCreateAlarmArea);
-        //createBackgroundAreas(m_alarmUpValue,m_alarmDownValue);
+        //setAlarmValues(m_alarmUpValue,m_alarmDownValue);
     }
 
 }
@@ -2173,5 +2169,129 @@ void sFaultDetectionClassificationRGA::on_UI_CB_WAFERID_currentTextChanged(const
     else
     {
         setManualCLLinesVisible(arg1,2,true);
+    }
+}
+
+/*!
+ * \brief sFaultDetectionClassificationRGA::on_btnDefine_clicked
+ */
+void sFaultDetectionClassificationRGA::on_btnDefine_clicked()
+{
+    QString xmlConfPath  = QCoreApplication::applicationDirPath() + "\\ChartFDC";
+    if(!QFile::exists(xmlConfPath)){
+        QMessageBox::warning(nullptr,tr("错误"),tr("核心配置文件ChartFDC不存在，请检查！"));
+        return;
+    }
+
+    QMap<QString, EquipmentGroupInfo> infoMap = XMLReadHelp::parseEquipmentGroupsFromXML(m_chartFDCXML_content);
+
+    sDefinePlotDataDlg* dlg = new sDefinePlotDataDlg(infoMap,m_chamerIDConfMap);
+    if(dlg->exec() == QDialog::Accepted)
+    {
+        QVariantMap dataMap = dlg->getData();
+        QString msg = cJsonFileOperate::variant2Json(dataMap);
+        qDebug().noquote() << msg;
+        if(dataMap.isEmpty()){
+            QMessageBox::warning(nullptr,tr("提示"),tr("无有效的选择！"));
+            return;
+        }
+
+        //选中条目【具体的 N2/Ar  N2/H2O  O2/H2O 】
+        setChkItem(dataMap);
+
+        //chamberID控件的值处理 - 临时方法[防止sDefinePlotDataDlg中 CHE 与 TM这种交叉，即tree选择与com选择岔开来了]
+        //CHE的chamberID就自动为CHE
+        int itemCount = ui.UI_CB_CHAMBERID->count();
+        QStringList itemTexts;
+        for (int var = 0; var < itemCount; ++var) {
+            itemTexts.append(ui.UI_CB_CHAMBERID->itemText(var));
+        }
+        QString chamberName = dataMap["chamberName"].toString();
+        if(chamberName.toUpper() == "CHE")
+        {
+            int index = itemTexts.indexOf("CHE");
+            if(index > 0){
+                ui.UI_CB_CHAMBERID->setCurrentIndex(index);
+            }
+        }
+        else
+        {
+            //TM的要是选的不是TM相关的就选中第一个TM相关的
+            QString selectedTxt = dataMap["com_box"].toString();
+            int validIndex = -1;
+            if(!selectedTxt.contains("TM1")){
+                for (int i=0;i<itemTexts.count();i++) {
+                    QString tmp = itemTexts.value(i);
+                    if(tmp.toUpper().contains("TM1")){
+                        validIndex = i;
+                        break;
+                    }
+                }
+                if(validIndex > 0){
+                    ui.UI_CB_CHAMBERID->setCurrentIndex(validIndex);
+                }
+            }
+            else
+            {
+                int index = itemTexts.indexOf(selectedTxt);
+                if(index > 0){
+                    ui.UI_CB_CHAMBERID->setCurrentIndex(index);
+                }
+            }
+        }
+
+        //2.执行载入
+        on_UI_PB_OK_FDC_clicked();
+    }
+}
+
+void sFaultDetectionClassificationRGA::setChkItem(const QVariantMap &i_dataMap)
+{
+    int topLevelCount = ui.UI_TW_EQ_LIST_FDC->topLevelItemCount();
+    //清空全部chk[注意没有递归，只适合当前配置的xml]
+    for (int i =0;i < topLevelCount;i++)
+    {
+        QTreeWidgetItem* topLevelItem = ui.UI_TW_EQ_LIST_FDC->topLevelItem(i);
+        int cCount = topLevelItem->childCount();
+        for (int cIndex =0;cIndex < cCount;cIndex++)
+        {
+            QTreeWidgetItem* childItem = topLevelItem->child(cIndex);
+            PublicDef::clearAllCheckState(childItem);
+        }
+    }
+
+    //开始
+    QString equipmentGroupName = i_dataMap["equipmentGroupName"].toString();
+    QString chamberName = i_dataMap["chamberName"].toString();
+    QString name = i_dataMap["name"].toString();
+    QString chamberID_selected = i_dataMap["com_box"].toString();
+    //1.界面勾选
+
+    for (int i =0;i < topLevelCount;i++) {
+        QTreeWidgetItem* topLevelItem = ui.UI_TW_EQ_LIST_FDC->topLevelItem(i);
+        QString grpName = topLevelItem->text(0);
+        qDebug().noquote() << "grpName:   " << grpName;
+        if(grpName.toLower() == equipmentGroupName.toLower()){
+            int cCount = topLevelItem->childCount();
+            for (int cIndex =0;cIndex < cCount;cIndex++) {
+                //这边是  CHE TM1这个级别
+                QTreeWidgetItem* childItem = topLevelItem->child(cIndex);
+                QString cName = childItem->text(0);
+                qDebug().noquote() << "cName:   " << cName;
+                if(cName.toLower() == chamberName.toLower())
+                {
+                    //到了具体的 N2/Ar  N2/H2O  O2/H2O  这边了
+                    int itemCount = childItem->childCount();
+                    for (int tmp = 0;tmp < itemCount;tmp++) {
+                        QTreeWidgetItem* tmpItem = childItem->child(tmp);
+                        QString tmpName = tmpItem->text(0);
+                        if(tmpName.toLower() == name.toLower()){
+                            tmpItem->setCheckState(0,Qt::Checked);
+                        }
+                    }
+                    break;
+                }
+            }
+        }
     }
 }

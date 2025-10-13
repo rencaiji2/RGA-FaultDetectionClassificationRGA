@@ -402,6 +402,16 @@ public:
         qDebug() << "总共查询到" << dateList.size() << "条记录";
         return true;
     }
+
+    //获取全部的表名
+    QStringList getTables()
+    {
+        QStringList tables;
+        if (mDatabase.isOpen()) {
+            tables = mDatabase.tables(QSql::Tables);
+        }
+        return tables;
+    }
 };
 
 class sDatabaseFDC{
