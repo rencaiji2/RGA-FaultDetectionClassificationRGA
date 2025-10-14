@@ -220,16 +220,33 @@ void sDefinePlotDataDlg::initTreeWgtFromReportConf()
                     QString channelName = rowMap["channel_name"].toString();//name
                     QString chamberID = rowMap["chamber_id"].toString();
 
+
+
                     QTreeWidgetItem* cItem = new QTreeWidgetItem(chamberNameItem);
                     //cItem->setText(0,chamberName);
                     cItem->setText(0,"");
 
-                    //显示前缀 - system.conf中配置
-                    QString preStr = m_parentSystemConFMap.value("define_pre","From Defined mode").toString();
+                    //每一行的显示辅助字符串也可以定义
+                    QString defineStrFormat = rowMap.value("title","").toString();
+                    if(defineStrFormat == ""){
+                        //显示前缀 - system.conf中配置 [没有行辅助信息，就使用通用的]
+                        QString preStr = m_parentSystemConFMap.value("define_pre","From Defined mode").toString();
 
-                    QString str = QString("%1 :%2,ChambersID: %3").arg(preStr)
-                                    .arg(channelName).arg(chamberID);
-                    cItem->setText(1,str);
+                        QString str = QString("%1 :%2,ChambersID: %3").arg(preStr)
+                                        .arg(channelName).arg(chamberID);
+                        cItem->setText(1,str);
+                    }
+                    else
+                    {
+                        //按规则替换
+                        QStringList needFormat = {channelName,chamberID};
+                        QString showTitle = defineStrFormat;
+                        for (const QString &item : needFormat)
+                        {
+                            showTitle = showTitle.arg(item);
+                        }
+                        cItem->setText(1,showTitle);
+                    }
 
                     //补充信息
                     channelMap["chamberID"] = chamberID;
