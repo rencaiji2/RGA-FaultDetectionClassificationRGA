@@ -21,3 +21,5 @@ void sFaultDetectionClassificationRGA::drawAlarmArea()
     m_chartWgt->updateAreaValues(upBase, upLine, downBase, downLine);
     m_chartWgt->setShowAreas(false,true);
 }
+
+

@@ -477,6 +477,16 @@ void TChartWidget::resetView()
     m_chartView->resetView();
 }
 
+/*!
+ * \brief TChartWidget::setOverLimitedPointsFlag 设置超限的点的标注颜色
+ * \param points
+ * \param seriesName
+ */
+void TChartWidget::setOverLimitedPointsFlag(const QList<QPointF> &points, const QString &seriesName)
+{
+    setExceedingMarker(points,seriesName);
+}
+
 void TChartWidget::removeSeries(QAbstractSeries *series)
 {
     if(m_chart == nullptr || series == nullptr){
@@ -1031,8 +1041,8 @@ void TChartWidget::addSelectionMarker(const QString& seriesName, const QPointF& 
         markerSeries->setBorderColor(Qt::green);    // 绿色边框
 
         // 设置虚线边框 - 重要：使用正确的QPen设置
-        QPen pen(Qt::darkYellow);
-        pen.setStyle(Qt::DashLine);
+        QPen pen(Qt::green);
+        pen.setStyle(Qt::SolidLine);
         pen.setWidth(3);  // 增加线宽使更明显
         markerSeries->setPen(pen);
 
@@ -1150,6 +1160,110 @@ QString TChartWidget::findSeriesNameByPoint(const QPointF &point) const
     return QString();
 }
 
+void TChartWidget::setExceedingMarker(const QList<QPointF> &points, const QString &seriesName)
+{
+    m_currentScatterSeriesName = seriesName;
+    m_exceedingMarkerSeries = new QScatterSeries();
+    m_exceedingMarkerSeries->setName("exceedingMarker");
+    m_exceedingMarkerSeries->setMarkerShape(QScatterSeries::MarkerShapeRectangle);
+    m_exceedingMarkerSeries->setMarkerSize(18.0);  // 增大一些以便更明显
+    m_exceedingMarkerSeries->setColor(Qt::transparent);  // 填充
+    m_exceedingMarkerSeries->setBorderColor(Qt::red);    // 边框颜色
+
+    // 设置虚线边框 - 重要：使用正确的QPen设置
+    QPen pen(Qt::red);
+    pen.setStyle(Qt::SolidLine);
+    pen.setWidth(1);  // 增加线宽使更明显
+    m_exceedingMarkerSeries->setPen(pen);
+
+    m_exceedingMarkerSeries->append(points);
+    // 添加到图表
+    m_chart->addSeries(m_exceedingMarkerSeries);
+
+    // 遍历当前图表中的所有系列，找到正确的轴
+    QList<QAbstractAxis*> xAxisList = m_chart->axes(Qt::Horizontal);
+    QList<QAbstractAxis*> yAxisList = m_chart->axes(Qt::Vertical);
+
+    if (!xAxisList.isEmpty() && !yAxisList.isEmpty()) {
+        // 关联到与原系列相同的轴
+        m_exceedingMarkerSeries->attachAxis(xAxisList.first());
+        m_exceedingMarkerSeries->attachAxis(yAxisList.first());
+    } else if (m_xAxis && m_yAxis) {
+        // 备用方案：使用成员变量
+        m_exceedingMarkerSeries->attachAxis(m_xAxis);
+        m_exceedingMarkerSeries->attachAxis(m_yAxis);
+    }
+
+    // 确保标记系列可见
+    m_exceedingMarkerSeries->setVisible(true);
+
+    // 为标记添加点击事件处理[原因是mark比原先的点大，会覆盖原先点的点击事件导致点不会再次被点击，这样就不能取消]
+    connect(m_exceedingMarkerSeries, SIGNAL(doubleClicked(const QPointF &)),
+            this,SLOT(onExceedingMarkserSeriesClicked(const QPointF &)));
+
+    connect(m_exceedingMarkerSeries, &QScatterSeries::clicked, [=](const QPointF& point)
+    {
+        //转换被遮盖的点与对应的轴的数据
+        QPointF orgPnt = findMarkedOrgPnt(m_currentScatterSeriesName,point);
+        QList<QPointF> points = QList<QPointF>::fromVector(m_seriesData.value(m_currentScatterSeriesName).points);
+
+        //开始判断
+        int indexSeries= -1;
+        for (int i = 0; i < points.size(); ++i) {
+            const QPointF& pt = points.at(i);
+            if (std::abs(pt.x() - orgPnt.x()) < 1e-6 &&
+                    std::abs(pt.y() - orgPnt.y()) < 1e-6) {
+                indexSeries= i;
+            }
+        }
+        if(indexSeries== -1)
+            return;
+        QToolTip::showText(QCursor::pos(), formatTooltip(orgPnt, m_currentScatterSeriesName, indexSeries));
+    });
+
+    // 强制更新图表
+    m_chart->update();
+}
+
+/*!
+ * \brief TChartWidget::findMarkedOrgPnt 查找被超限标识控制框下，实际的点
+ * \param i_currentScatterSeriesName 当前散点的轴名称
+ * \param i_clickedPnt 被点击的marker
+ * \return
+ */
+QPointF TChartWidget::findMarkedOrgPnt(const QString &i_currentScatterSeriesName, const QPointF &i_clickedPnt)
+{
+    QPointF res(0.0,0.0);
+    //由于绘制的限制标识框是后绘制的，会遮住原来的点，双击事件实际原始点点不到，需要做个转换
+    SeriesData curData = m_seriesData.value(i_currentScatterSeriesName);
+    QVector<QPointF> points = curData.points;
+    if(points.count() > 0){
+        res = findNearestPoint(points,i_clickedPnt);
+    }
+
+    return res;
+}
+
+QPointF TChartWidget::findNearestPoint(const QVector<QPointF> &pntList, const QPointF &pnt)
+{
+    if (pntList.isEmpty()) return QPointF(0.0,0.0);
+
+    double minDistance = std::numeric_limits<double>::max();
+    QPointF nearestPoint;
+
+    for (const QPointF& current : pntList) {
+        double dx = current.x() - pnt.x();
+        double dy = current.y() - pnt.y();
+        double distanceSquared = dx*dx + dy*dy; // 使用平方避免开方运算
+
+        if (distanceSquared < minDistance) {
+            minDistance = distanceSquared;
+            nearestPoint = current;
+        }
+    }
+    return nearestPoint;
+}
+
 //void TChartWidget::handleSeriesClicked(const QPointF &point)
 //{
 //    // 查找是哪个系列触发的点击
@@ -1264,6 +1378,40 @@ void TChartWidget::handleSeriesDoubleClicked(const QPointF &point)
         emit pointDoubleClicked(seriesName, point);
 //    }
         */
+}
+
+/*!
+ * \brief TChartWidget::onExceedingMarkserSeriesClicked 目前绑定的是双击事件
+ * \param point
+ */
+void TChartWidget::onExceedingMarkserSeriesClicked(const QPointF &point)
+{
+    //1.转义后的点【即：被超限标识覆盖下的点】
+    QPointF orgPnt = findMarkedOrgPnt(m_currentScatterSeriesName,point);
+
+    //2.绘制选择marker
+    QString pointKey = generatePointKey(m_currentScatterSeriesName, orgPnt);
+
+    // 检查点是否已选中
+    bool alreadySelected = m_selectedPointMap.contains(pointKey);
+
+    if (alreadySelected) {
+        // 已选中则取消选中
+        removeSelectionMarker(m_currentScatterSeriesName, orgPnt);
+        m_selectedPoints.removeOne(qMakePair(m_currentScatterSeriesName, orgPnt));
+        emit pointSelected(m_currentScatterSeriesName, orgPnt, false);
+        qDebug() << "取消选中点:" << m_currentScatterSeriesName << orgPnt;
+    } else {
+        // 未选中则添加选中
+        addSelectionMarker(m_currentScatterSeriesName, orgPnt);
+        m_selectedPoints.append(qMakePair(m_currentScatterSeriesName, orgPnt));
+        emit pointSelected(m_currentScatterSeriesName, orgPnt, true);
+        qDebug() << "选中点:" << m_currentScatterSeriesName << orgPnt;
+    }
+
+
+    //3.通知主界面操作
+    emit pointDoubleClicked(m_currentScatterSeriesName, orgPnt);
 }
 
 //void TChartWidget::handleSeriesHovered(const QPointF &point, bool state)

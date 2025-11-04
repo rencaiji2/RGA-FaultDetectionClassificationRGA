@@ -27,6 +27,9 @@
 #include <QAreaSeries>
 #include <QDateTime>
 
+#include <cmath>
+#include <limits>
+
 QT_CHARTS_USE_NAMESPACE
 
 // 自定义图表视图类，处理鼠标交互
@@ -248,10 +251,18 @@ public:
         m_seriesInfoMap = i_seriesInfoMap;
     }
 
-    QMap<QString, SeriesData> getSeriesData()
+    QMap<QString, SeriesData> getSeriesDataMap()
     {
         return m_seriesData;
     }
+
+    SeriesData getSeriesData(const QString& seriesName)
+    {
+        return m_seriesData[seriesName];
+    }
+
+    //标注超限的点
+    void setOverLimitedPointsFlag(const QList<QPointF>& points,const QString& seriesName);
 
     //重新关联轴 【主要是层级的调整，chart是先创建的在底层】
     // 获取所有系列的函数
@@ -325,7 +336,7 @@ private slots:
     //void handleSeriesClicked(const QPointF &point);
     void handleSeriesDoubleClicked(const QPointF &point);
     //void handleSeriesHovered(const QPointF &point, bool state);
-
+    void onExceedingMarkserSeriesClicked(const QPointF &point);
 private:
     void setupUI();
     void createLineChart();
@@ -397,6 +408,15 @@ private:
     // 辅助函数
     QString findSeriesNameByPoint(const QPointF& point) const;
     //-----------------------点选相关-------------------------------------------------
+
+    //----标注超限的点---------------------
+    void setExceedingMarker(const QList<QPointF>& points,const QString& seriesName);
+    QScatterSeries* m_exceedingMarkerSeries = nullptr;
+    QString m_currentScatterSeriesName = "";//当前显示的散点的轴名【对应界面combobox的当前值】
+    QPointF findMarkedOrgPnt(const QString& i_currentScatterSeriesName,const QPointF& i_clickedPnt);
+    QPointF findNearestPoint(const QVector<QPointF>& pntList, const QPointF& pnt);
+
+    //---------------标注结束--------------------
 };
 
 #endif // TCHARWIDGET_H

@@ -19,6 +19,14 @@
 #include "XMLReadHelp.h"
 #include "LibAlgorithm/PublicAlgorithm.h"
 #include "sDefinePlotDataDlg.h"
+#include "sTool/EmailSender.h"
+#include "sTool/OutlookEmailSender.h"
+#include <sTool/UniversalEmailSender.h>
+#include "sTool/ReportHandler.h"
+#include "sTool/ScatterPlotRenderer.h"
+#include "sTool/HtmlReportGenerator.h"
+#include "sTool/OutlookProcessSender.h"
+#include <QUrl>
 
 using namespace QtCharts;
 
@@ -33,6 +41,12 @@ class sFaultDetectionClassificationRGA : public QMainWindow
 public:
     sFaultDetectionClassificationRGA(QWidget *parent = nullptr);
     ~sFaultDetectionClassificationRGA();
+
+    //日常邮件发送用
+    void setScheduledTime(const QTime& time);  // 设置定时时间
+    void setScheduledEnabled(bool enabled);    // 启用/禁用定时功能
+    QTime getScheduledTime() const;           // 获取定时时间
+    bool isScheduledEnabled() const;          // 检查是否启用
 
     /**
      * @brief 高级版本：支持更多自定义选项
@@ -62,6 +76,7 @@ public:
     };
 signals:
     void sUpdateCharWgt();
+    void sDoDailyMail();//通知发日常邮件
 
 private slots:
     void on_UI_PB_OK_FDC_clicked();
@@ -120,6 +135,27 @@ private slots:
     void setChkItem(const QVariantMap& i_dataMap);
 
     void drawAlarmArea();
+
+    void on_btnTestEmail_clicked();  // 新增测试邮件按钮槽函数
+    void sendEmailViaSystem(const QString& recipient, const QString& subject, const QString& body);
+
+    void on_btnSendMail_clicked();
+    void onSendAlarmMail(QVariant i_info);
+    void exportScatterPlotsToImages();
+    QMap<QString, QImage> getScatterPlotImages();
+    QImage getSingleScatterPlotImage(const QString &seriesName);
+    void exportScatterPlotsWithLimits();
+    void exportScatterPlotsWithCustomLimits();
+    //html
+    void sendHtmlReportEmail();
+    void sendEmailWithHtmlContent(const QString& htmlContent);
+    void saveHtmlReportToFile();
+    void on_btnClearLog_clicked();
+    void onShowHanderLogMsg(QString i_log);
+
+    //日常邮件发送
+    void onSendDailyMail();
+    void on_chkEnabledMail_clicked(bool checked);
 
 private:
     void initUI();
@@ -248,6 +284,36 @@ private:
     //对应system.conf文件
     QVariantMap m_systemMap;
     void loadSystemConf();
+
+    //设置超限点的标注颜色
+    void setOverLimitedPoints();
+
+    //告警邮件检测
+    ReportHandler* m_reportHander = nullptr;
+    void setLogMsg(QString i_logMsg);
+    bool m_warningShow = true;//为了兼容后台查数据，在没有数据时是否弹框显示
+
+    //日常定时邮件
+    QTimer* m_scheduledTimer = nullptr;
+    QTime m_scheduledTime;
+    bool m_scheduledEnabled = false;
+    bool m_isSendDailyOver = true;//防止一分钟内多发-时间精确
+    void checkScheduledTime();
+    // 通用算法版本
+    void calculateGridDimensions(int imgCount, int& rows, int& cols)
+    {
+        if (imgCount <= 0) {
+            rows = 0;
+            cols = 0;
+            return;
+        }
+
+        // 计算列数：图片数的平方根向上取整
+        cols = static_cast<int>(ceil(sqrt(imgCount)));
+
+        // 计算行数：能容纳所有图片的最小行数
+        rows = static_cast<int>(ceil(static_cast<double>(imgCount) / cols));
+    }
 };
 
 #endif // SFAULTDETECTIONCLASSIFICATIONRGA_H

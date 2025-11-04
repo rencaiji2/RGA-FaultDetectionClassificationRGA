@@ -47,6 +47,18 @@ sFaultDetectionClassificationRGA::sFaultDetectionClassificationRGA(QWidget *pare
 
     //加载CL与chamerID对应关系配置
     loadChamerIDConf();
+
+    m_reportHander = new ReportHandler();
+    connect(m_reportHander,SIGNAL(sAlarmData(QVariant)),this,SLOT(onSendAlarmMail(QVariant)));
+    connect(m_reportHander,SIGNAL(sLogMsg(QString)),this,SLOT(onShowHanderLogMsg(QString)));
+
+    //日常邮件监测
+    m_scheduledTime = QTime(19,30);
+    // 初始化定时器
+    m_scheduledTimer = new QTimer(this);
+    connect(m_scheduledTimer, &QTimer::timeout, this, &sFaultDetectionClassificationRGA::checkScheduledTime);
+    m_scheduledTimer->start(10000);  // 每10秒检查一次
+    connect(this,SIGNAL(sDoDailyMail()),this,SLOT(onSendDailyMail()));
 }
 
 sFaultDetectionClassificationRGA::~sFaultDetectionClassificationRGA()
@@ -54,6 +66,10 @@ sFaultDetectionClassificationRGA::~sFaultDetectionClassificationRGA()
     if(mConfigEQ)
         delete mConfigEQ;
     mConfigEQ= nullptr;
+
+    if (m_scheduledTimer) {
+            m_scheduledTimer->stop();
+    }
 
 //    if(mRecipeManageFDC)
 //        delete mRecipeManageFDC;
@@ -195,7 +211,15 @@ void sFaultDetectionClassificationRGA::loadLocalData(const QString& chamberName,
                                               chamberID,
                                               chamberName);
     if(!o_ok){
-        QMessageBox::warning(nullptr, tr("提示"), keyEquipmentGroup+ " "+ chamberName/*keyChamber*/+ tr("该区间无数据！"));
+        if(m_warningShow){
+            QMessageBox::warning(nullptr, tr("提示"), keyEquipmentGroup+ " "+ chamberName/*keyChamber*/+ tr("该区间无数据！"));
+        }
+        else
+        {
+            setLogMsg(keyEquipmentGroup+ " "+ chamberName/*keyChamber*/+ tr("该区间无数据！"));
+        }
+
+
         return;//continue;
     }
     qDebug().noquote() << tr("总数据长度:%1").arg(dateList.count());
@@ -213,6 +237,84 @@ void sFaultDetectionClassificationRGA::loadSystemConf()
     m_systemMap = cJsonFileOperate::jsonFile2QVarint(path).toMap();
 }
 
+void sFaultDetectionClassificationRGA::setOverLimitedPoints()
+{
+    if(m_chartWgt == nullptr)
+        return;
+
+
+    QString seriesName = ui.comCL_mode->currentText();
+
+    TChartWidget::SeriesData seriesData = m_chartWgt->getSeriesData(seriesName);
+    QVector<QPointF> points = seriesData.points;
+
+    QList<QPointF> overLimitedPnts;
+    foreach (QPointF pnt, points) {
+        double y = pnt.y();
+        if(y > m_alarmUpValue || y < m_alarmDownValue){
+            overLimitedPnts.append(pnt);
+        }
+    }
+
+    m_chartWgt->setOverLimitedPointsFlag(overLimitedPnts,seriesName);
+}
+
+void sFaultDetectionClassificationRGA::setLogMsg(QString i_logMsg)
+{
+    ui.txtLog->append(i_logMsg);
+}
+
+void sFaultDetectionClassificationRGA::setScheduledTime(const QTime& time)
+{
+    m_scheduledTime = time;
+}
+
+void sFaultDetectionClassificationRGA::setScheduledEnabled(bool enabled)
+{
+    m_scheduledEnabled = enabled;
+
+    // 可以选择启动/停止定时器
+    if (enabled && m_scheduledTimer) {
+        m_scheduledTimer->start(10000);  // 确保定时器运行
+    } else if (!enabled && m_scheduledTimer) {
+        m_scheduledTimer->stop();  // 停止定时器
+    }
+}
+
+QTime sFaultDetectionClassificationRGA::getScheduledTime() const
+{
+    return m_scheduledTime;
+}
+
+bool sFaultDetectionClassificationRGA::isScheduledEnabled() const
+{
+    return m_scheduledEnabled;
+}
+
+void sFaultDetectionClassificationRGA::checkScheduledTime()
+{
+    if (!m_scheduledEnabled) {
+        return;
+    }
+
+    QTime currentTime = QTime::currentTime();
+    QDate currentDate = QDate::currentDate();
+
+    // 检查是否到达设定时间（精确到分钟）
+    if (currentTime.hour() == m_scheduledTime.hour() &&
+        currentTime.minute() == m_scheduledTime.minute()) {
+
+        // 使用日期作为标识，确保每天只触发一次
+        static QDate lastTriggeredDate;
+
+        // 如果最后一次触发日期不是今天，则触发
+        if (lastTriggeredDate != currentDate) {
+            lastTriggeredDate = currentDate;
+            emit sDoDailyMail();  // 发出信号
+            qDebug() << "定时时间到达，已发出sDoDailyMail信号:" << currentTime.toString("hh:mm:ss");
+        }
+    }
+}
 
 //void sFaultDetectionClassificationRGA::on_pushButton_4_clicked()
 //{
@@ -333,7 +435,14 @@ void sFaultDetectionClassificationRGA::initChartWgt()
 void sFaultDetectionClassificationRGA::parsedCharWgtData(QMap<QString, QList<QPair<QDateTime, double> > > &pMap)
 {
     if(pMap.isEmpty()){
-        QMessageBox::warning(nullptr,tr("错误"),tr("parsedCharWgtData-无有效的数据！"));
+        if(m_warningShow){
+            QMessageBox::warning(nullptr,tr("错误"),tr("parsedCharWgtData-无有效的数据！"));
+        }
+        else
+        {
+            setLogMsg(tr("parsedCharWgtData-无有效的数据！"));
+        }
+
         return;
     }
     /*
@@ -358,7 +467,7 @@ void sFaultDetectionClassificationRGA::parsedCharWgtData(QMap<QString, QList<QPa
     //cJsonFileOperate::toJsonFile(pDef->m_dataInfoMap,"typeAvgInfo.json");
 
     //显示散点图
-    plotTimeSeriesData(m_chartWgt, pMap, "RGA数据监控"); 
+    plotTimeSeriesData(m_chartWgt, pMap, "RGA数据监控");
 
     //ChamberID控件
     calCLAlg(pDef->m_dataInfoMap);
@@ -374,6 +483,8 @@ void sFaultDetectionClassificationRGA::parsedCharWgtData(QMap<QString, QList<QPa
 
     on_comCL_mode_currentIndexChanged(0);//触发一次
 
+    //绘制超限点的标注颜色
+    setOverLimitedPoints();
 }
 
 
@@ -1265,7 +1376,14 @@ void sFaultDetectionClassificationRGA::parsedCL_manual(QList<QDateTime> &validSt
     //轴的数据
     QList<QPair<QDateTime, double>> pntsList = mDataMap.value(seriesName);
     if(pntsList.count() <= 0){
-        QMessageBox::warning(nullptr,tr("错误"),tr("parsedCL_manual中数据！"));
+        if(m_warningShow){
+            QMessageBox::warning(nullptr,tr("错误"),tr("parsedCL_manual中数据！"));
+        }
+        else
+        {
+            setLogMsg(tr("parsedCL_manual中数据！"));
+        }
+
         return;
     }
 
@@ -2082,7 +2200,14 @@ void sFaultDetectionClassificationRGA::on_comCL_mode_currentIndexChanged(int ind
         //重新绘制CL
         QString chamberID = ui.UI_CB_CHAMBERID->currentText();
         if(chamberID.toLower() == "all"){
-            QMessageBox::warning(nullptr,tr("提示"),tr("ALL的选择不会绘制CL控制线！"));
+            if(m_warningShow){
+                QMessageBox::warning(nullptr,tr("提示"),tr("ALL的选择不会绘制CL控制线！"));
+            }
+            else
+            {
+                setLogMsg(tr("ALL的选择不会绘制CL控制线！"));
+            }
+
             //清空已有控制线
             clearControlLineManual();
             return;
@@ -2091,7 +2216,14 @@ void sFaultDetectionClassificationRGA::on_comCL_mode_currentIndexChanged(int ind
         QString seriesName = ui.comCL_mode->currentText();
         if(seriesName.isEmpty() || seriesName.toLower() == "all"){
             //实际就是软件刚刚打开的时候也触发了，
-            QMessageBox::warning(nullptr,tr("提示"),tr("ALL选择不会绘制CL控制限，清空当前CL线！"));
+            if(m_warningShow){
+                QMessageBox::warning(nullptr,tr("提示"),tr("ALL选择不会绘制CL控制限，清空当前CL线！"));
+            }
+            else
+            {
+                setLogMsg(tr("ALL选择不会绘制CL控制限，清空当前CL线！"));
+            }
+
             clearControlLineManual();
             return;
         }
@@ -2112,7 +2244,7 @@ void sFaultDetectionClassificationRGA::on_chkShowCL_clicked(bool checked)
     setControlLinesVisible(checked);
 
     //测试需要删除
-    QMap<QString, TChartWidget::SeriesData> seriesDataMap = m_chartWgt->getSeriesData();
+    QMap<QString, TChartWidget::SeriesData> seriesDataMap = m_chartWgt->getSeriesDataMap();
     foreach (QString seriesName, seriesDataMap.keys()) {
         qDebug().noquote() << "seriesName:  " << seriesName;
     }
@@ -2137,6 +2269,12 @@ void sFaultDetectionClassificationRGA::on_btnClearPnts_clicked()
     }
 
     ui.UI_PNTS_COMBOX->clear();
+
+    return;
+
+    //QString mailtoUrl = QString("mailto:170176354@qq.com?subject=test&body=hello world");
+    //QDesktopServices::openUrl(QUrl(mailtoUrl));
+    //return;
 }
 
 void sFaultDetectionClassificationRGA::on_UI_CB_EQ_RECIPE_currentTextChanged(const QString &arg1)
@@ -2191,7 +2329,14 @@ void sFaultDetectionClassificationRGA::on_btnDefine_clicked()
 {
     QString xmlConfPath  = QCoreApplication::applicationDirPath() + "\\ChartFDC";
     if(!QFile::exists(xmlConfPath)){
-        QMessageBox::warning(nullptr,tr("错误"),tr("核心配置文件ChartFDC不存在，请检查！"));
+        if(m_warningShow){
+            QMessageBox::warning(nullptr,tr("错误"),tr("核心配置文件ChartFDC不存在，请检查！"));
+        }
+        else
+        {
+            setLogMsg(tr("核心配置文件ChartFDC不存在，请检查！"));
+        }
+
         return;
     }
 
@@ -2202,9 +2347,17 @@ void sFaultDetectionClassificationRGA::on_btnDefine_clicked()
     {
         QVariantMap dataMap = dlg->getData();
         QString msg = cJsonFileOperate::variant2Json(dataMap);
+        setLogMsg(msg);
         qDebug().noquote() << msg;
         if(dataMap.isEmpty()){
-            QMessageBox::warning(nullptr,tr("提示"),tr("无有效的选择！"));
+            if(m_warningShow){
+                QMessageBox::warning(nullptr,tr("提示"),tr("无有效的选择！"));
+            }
+            else
+            {
+                setLogMsg(tr("无有效的选择！"));
+            }
+
             return;
         }
 
@@ -2221,7 +2374,6 @@ void sFaultDetectionClassificationRGA::on_btnDefine_clicked()
             ui.dateEditStart->setDate(startDate);
             ui.dateEditEnd->setDate(endDate);
         }
-
 
         //选中条目【具体的 N2/Ar  N2/H2O  O2/H2O 】
         setChkItem(dataMap);
@@ -2293,4 +2445,916 @@ void sFaultDetectionClassificationRGA::setChkItem(const QVariantMap &i_dataMap)
             }
         }
     }
+}
+
+void sFaultDetectionClassificationRGA::on_btnTestEmail_clicked()
+{
+    if(m_chartWgt != nullptr){
+        m_chartWgt->clearSelection();
+    }
+
+    ui.UI_PNTS_COMBOX->clear();
+
+    if(m_warningShow){
+
+    }
+    else
+    {
+
+    }
+    // 首先提示用户
+    QMessageBox::StandardButton reply = QMessageBox::question(this, "邮件发送确认",
+        "即将发送测试邮件到 170176354@qq.com\n"
+        "请确保：\n"
+        "1. Outlook已启动并登录\n"
+        "2. 如果出现安全提示，请及时确认\n"
+        "3. 邮件可能需要几秒钟时间发送",
+        QMessageBox::Yes | QMessageBox::No);
+
+    if (reply != QMessageBox::Yes) {
+        return;
+    }
+
+#ifdef Q_OS_WIN
+    // 创建Outlook邮件发送器
+    OutlookEmailSender* outlookSender = new OutlookEmailSender(this);
+    bool ok = outlookSender->configureOutlookSecurity();
+    qDebug() << "bool configureOutlookSecurity();:  " << ok;
+
+    // 显示发送状态
+    QMessageBox* progressBox = new QMessageBox(this);
+    progressBox->setWindowTitle("发送邮件");
+    progressBox->setText("正在发送测试邮件...");
+    progressBox->setStandardButtons(QMessageBox::NoButton);
+    progressBox->show();
+
+    QApplication::processEvents(); // 确保对话框显示
+
+    // 发送简单测试邮件
+    QString testRecipient = "170176354@qq.com";
+    bool success = outlookSender->sendTestEmailWithRetry(testRecipient, "测试邮件", "helloworld");
+
+    progressBox->close();
+    delete progressBox;
+
+    if(m_warningShow){
+
+    }
+    else
+    {
+
+    }
+    if (success) {
+        QMessageBox::information(this, "成功", "测试邮件已发送到 " + testRecipient);
+    } else {
+        QMessageBox::warning(this, "失败",
+            "邮件发送失败。可能的原因：\n"
+            "1. Outlook安全警告需要手动确认\n"
+            "2. Outlook未正确配置\n"
+            "3. 网络连接问题");
+    }
+
+    delete outlookSender;
+#else
+    QMessageBox::information(this, "提示", "邮件发送功能仅在Windows系统上可用！");
+#endif
+//#ifdef Q_OS_WIN
+//    OutlookEmailSender* outlookSender = new OutlookEmailSender(this);
+
+//    if (!outlookSender->isOutlookAvailable()) {
+//        QMessageBox::warning(this, "错误", "无法连接到Outlook，请确保Outlook已启动并登录！");
+//        delete outlookSender;
+//        return;
+//    }
+
+//    QString recipient = "170176354@qq.com";  // 可以改为从界面输入或其他方式获取
+//    QString subject = "测试邮件";
+//    QString body = "helloworld";
+
+//    if (outlookSender->sendTestEmail(recipient, subject, body)) {
+//        QMessageBox::information(this, "成功", QString("测试邮件已发送到 %1").arg(recipient));
+//    } else {
+//        QMessageBox::warning(this, "失败", "测试邮件发送失败！");
+//    }
+
+//    delete outlookSender;
+//#else
+//    QMessageBox::information(this, "提示", "Outlook邮件发送功能仅在Windows系统上可用！");
+//#endif
+}
+
+void sFaultDetectionClassificationRGA::sendEmailViaSystem(const QString &recipient, const QString &subject, const QString &body)
+{
+    /*
+    QString mailtoUrl = QString("mailto:%1?subject=%2&body=%3").arg(recipient)
+                           .arg(QUrl::toPercentEncoding(subject))
+                           .arg(QUrl::toPercentEncoding(body));
+    */
+
+    QString mailtoUrl = QString("mailto:170176354@qq.com?subject=test&body=hello world");
+    QDesktopServices::openUrl(QUrl(mailtoUrl));
+}
+
+void sFaultDetectionClassificationRGA::on_btnSendMail_clicked()
+{
+    //测试邮件发送
+    {
+        //方式1-ok 发送的内容核心是html，需要一些html知识
+        EmailSender* mail = new EmailSender();
+        //mail->testSendDebug();//简单文本
+        mail->testSendWithTable();//带表格
+        //mail->testSendWithImages();//带图片
+        return;
+    }
+
+    {
+        // 使用通用邮件发送器
+        UniversalEmailSender* emailSender = new UniversalEmailSender(this);
+
+        // 配置邮件发送器
+        UniversalEmailSender::EmailConfig config;
+        config.smtpServer = "smtp.163.com";
+        config.port = 465;
+        config.username = "shenxiaoxiang2000@163.com";
+        config.password = "TTWjLNN9LySxZvZt";
+        config.useSSL = true;
+        config.senderName = "RGA数据分析系统";
+        config.senderEmail = "170176354@qq.com";
+
+        emailSender->setConfig(config);
+
+        // 发送测试邮件
+        QString testRecipient = "170176354@qq.com";
+
+        // 显示可用的发送方法
+        QList<UniversalEmailSender::EmailMethod> methods = emailSender->getAvailableMethods();
+        QString methodInfo;
+        for (auto method : methods) {
+            switch (method) {
+            case UniversalEmailSender::SMTP_METHOD:
+                methodInfo += "SMTP ";
+                break;
+            case UniversalEmailSender::SYSTEM_METHOD:
+                methodInfo += "系统邮件客户端 ";
+                break;
+            case UniversalEmailSender::MAPI_METHOD:
+                methodInfo += "MAPI ";
+                break;
+            case UniversalEmailSender::WEB_METHOD:
+                methodInfo += "Web API ";
+                break;
+            }
+        }
+
+        qDebug() << "可用邮件发送方法:" << methodInfo;
+
+        // 发送测试邮件
+        if (emailSender->sendTestEmail(testRecipient, "测试邮件", "helloworld")) {
+            QMessageBox::information(this, "成功",
+                QString("测试邮件已发送到 %1\n使用方法: 系统默认邮件客户端").arg(testRecipient));
+        } else {
+            QMessageBox::warning(this, "失败", "测试邮件发送失败！");
+        }
+
+        // 注意：emailSender会在父对象(this)销毁时自动删除
+        return;
+    }
+
+    {
+        QString mailtoUrl = QString("mailto:170176354@qq.com?subject=test&body=hello world");
+        QDesktopServices::openUrl(QUrl(mailtoUrl));
+        return;
+    }
+
+
+
+    //外部传参的发送【后续可以稍微封装一下】
+    {
+        //创建对象
+        EmailSender* mail = new EmailSender();
+
+        EmailSender::EmailConfig baseConf;
+        // 配置内网邮件服务器
+        baseConf.smtpServer = "127.0.0.1";
+        baseConf.port = 25;
+        baseConf.username = "test2@ydmail.com";
+        baseConf.password = "123456";
+        baseConf.useSSL = false;
+        mail->initEmailConfig(baseConf);
+
+        //设置接收人信息
+        QString to;//接收者
+        QStringList cc;//抄送
+        QString subject;//主题
+        mail->setReciverConf(to,cc,subject);
+
+        //创建邮件内容同时发送 - 待定【实际需要创建一个丰富的html】
+        EmailSender::EmailContent conent;
+    }
+    return;
+    // 创建 OutlookProcessSender 实例
+    OutlookProcessSender sender;
+
+    // 检查 Outlook 是否可用
+    if (!sender.isOutlookAvailable()) {
+        qDebug() << "Outlook不可用，请确保已安装Outlook";
+        return;
+    }
+
+    // 发送测试邮件
+    QString recipient = "shenxiaoxiang2000@163.com";
+    QString subject = "测试邮件";
+    QString body = "这是一封测试邮件sxxxxx";
+
+    bool success = sender.sendTestEmail(recipient, subject, body);
+
+    if (success) {
+        qDebug() << "邮件发送成功";
+    } else {
+        qDebug() << "邮件发送失败";
+    }
+
+    //绘图
+    {
+        ScatterPlotRenderer::PlotConfig config;
+        config.width = 1000;
+        config.height = 800;
+        config.outputDir = QCoreApplication::applicationDirPath() + "/scatter_plots";
+        config.pointSize = 8;
+
+        // 设置上下限值
+        config.down = 0.15;  // 下限值
+        config.up = 0.25;    // 上限值
+
+        // 显示上下限线
+        config.showLimits = true;
+
+        QDate startDate = ui.dateEditStart->date();
+        QDate endDate = ui.dateEditEnd->date();
+        if (ScatterPlotRenderer::savePlotsToFile(startDate,endDate,mDataMap, config)) {
+            QMessageBox::information(this, "成功", "散点图已保存到: " + config.outputDir);
+        } else {
+            QMessageBox::warning(this, "失败", "保存散点图失败！");
+        }
+    }
+
+    {
+        // 假设你已经有了图片数据
+        QMap<QString, QImage> infoImgMap = getScatterPlotImages(); // 从之前的方法获取
+
+        if (infoImgMap.isEmpty()) {
+            QMessageBox::warning(this, "警告", "没有图片数据可以发送！");
+            return;
+        }
+
+        // 配置报告生成器
+        HtmlReportGenerator::ReportConfig config;
+        config.title = "RGA数据分析报警报告";
+        config.greeting = "您好：";
+        config.introduction = "时间报警信息如下：";
+        config.conclusion = "请及时关注以上报警信息，分析异常原因并采取相应措施。";
+        config.fontFamily = "Arial, 'Microsoft Yahei', sans-serif";
+        config.fontSize = 14;
+        config.titleFontSize = 20;
+        config.imageTitleFontSize = 16;
+
+        // 设置报告数据
+        HtmlReportGenerator::ReportData data;
+        data.recipientName = "管理员";
+        data.reportTime = QDateTime::currentDateTime();
+        data.customIntroduction = "检测到以下数据异常：";
+        data.customConclusion = "请立即检查相关设备运行状态，必要时联系技术支持。";
+
+        // 生成HTML内容（嵌入图片）
+        QString htmlContent = HtmlReportGenerator::generateHtmlReport(infoImgMap, data, config);
+
+        QFile file("testMail.html");
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+            return;
+
+        QTextStream out(&file);
+        out << htmlContent << "\n";
+
+        file.close();
+
+        // 或者生成HTML并保存图片到文件
+        /*
+        QString outputDir = QCoreApplication::applicationDirPath() + "/reports";
+        QString htmlContent = HtmlReportGenerator::generateHtmlReportWithImageFiles(
+            infoImgMap, outputDir, data, config);
+        */
+    }
+    //
+
+}
+
+void sFaultDetectionClassificationRGA::onSendAlarmMail(QVariant i_info)
+{
+    //日志自动清空
+    QString msg = ui.txtLog->toPlainText();
+    if(msg.count() >= 20000){
+        ui.txtLog->clear();
+    }
+
+    if(!ui.chkEnabledMail->isChecked()){
+        //这边主要是防止手动查看散点会与自动冲突【实际时代码结构需要优化，先这么用】
+        setLogMsg(tr("未开启自动告警邮件检测..."));
+        m_reportHander->startTimer();
+        return;
+    }
+
+    if(i_info.type() == QVariant::List){
+        QVariantList alramList = i_info.toList();
+        qDebug().noquote() << "alramList-count: " << alramList.count();
+
+        //基础数据准备
+        QVariantMap alarmMap = alramList.value(0).toMap();
+        QString chamberID = alarmMap["chamberID"].toString();
+        QString RGARecipeName = alarmMap["RGARecipeName"].toString();
+        QString currentValue = alarmMap["currentValue"].toString();
+        QString deviceName = alarmMap["deviceName"].toString();//TM1
+        QString ip = alarmMap["ip"].toString();
+        QString limitValue = alarmMap["limitValue"].toString();
+        QString lotID = alarmMap["lotID"].toString();
+        QString slotID = alarmMap["slotID"].toString();
+        QString ratioName = alarmMap["ratioName"].toString();//N2/H2O
+        QString recordTime = alarmMap["recordTime"].toString();
+
+        QMap<QString,QPair<QString,QString>> pairMap = m_chamerIDConf.value(chamberID);
+        QPair<QString,QString> clPair = pairMap.value(ratioName);
+        QString lcl = clPair.first;
+        QString ucl = clPair.second;
+
+        //主体方案是软件自动绘制，然后邮件使用mDataMap这个数据结构，
+        //不然这边也要写数据库查询【到时候两边写不予样就麻烦【主要是现在不好剥离代码】】
+        //1.点选界面执行数据查询
+        //1.创建关键字dtaaMap
+        QVariantMap curMap;
+        curMap["chamberID"] = chamberID;
+        curMap["chamberName"] = deviceName;
+        curMap["chk"] = true;
+        curMap["equipmentGroupIP"] = ip;
+        curMap["equipmentGroupName"] = "local";//目前数据库没有
+        curMap["name"] = ratioName;
+        curMap["type"] = "item";
+        setChkItem(curMap);
+        int itemCount = ui.UI_CB_CHAMBERID->count();
+        QStringList itemTexts;
+        for (int var = 0; var < itemCount; ++var) {
+            itemTexts.append(ui.UI_CB_CHAMBERID->itemText(var));
+        }
+
+        int index = itemTexts.indexOf(chamberID);
+        if(index > 0){
+            ui.UI_CB_CHAMBERID->setCurrentIndex(index);
+        }
+
+        //这边还要完善一下？？？- 因为测试数据没数据，这边实际还是最近查寻，需要修改
+        //ui.rBtnTimArea->setChecked(true);
+
+        //默认来7张chart，即最近一周的数据[后续课放到配置中执行]
+        QMap<QString, QImage> infoImgMap;
+        QString outputDir = QCoreApplication::applicationDirPath() + "/scatter_plots";
+        QDate today = QDate::currentDate();
+
+        //配置中的机台编码
+        QString hostID = m_systemMap.value("host_id","North001").toString();
+        for (int i = 0; i < 7;i++)
+        {
+            //按天
+            QDate curDay = today.addDays(-1 * i);
+            ui.dateEditStart->setDate(curDay);
+            ui.dateEditEnd->setDate(curDay);
+
+            //2.加载数据
+            on_UI_PB_OK_FDC_clicked();
+            //3.后台绘制图片
+            ScatterPlotRenderer::PlotConfig config;
+            config.width = 1000;
+            config.height = 800;
+            config.outputDir = outputDir;
+            config.pointSize = 3;
+
+            // 设置上下限值
+            config.down = lcl.toDouble();  // 下限值
+            config.up = ucl.toDouble();    // 上限值
+
+            // 显示上下限线
+            config.showLimits = true;
+
+            //逻辑上只会有一个值
+            QMap<QString, QImage> images = ScatterPlotRenderer::renderPlotsToImages(mDataMap, config);
+
+            foreach (QString key, images.keys()) {
+                QImage img = images.value(key);
+
+                QString imgKey = key + "-Date:" + curDay.toString("MM_dd");
+                infoImgMap.insert(imgKey,img);
+            }
+
+            /*
+            if (ScatterPlotRenderer::savePlotsToFile(curDay,curDay,mDataMap, config)) {
+                setLogMsg("成功,散点图已保存到: " + config.outputDir);
+            } else {
+                setLogMsg("失败,保存散点图失败！");
+            }
+            */
+        }
+
+        //创建邮件内容html
+        if (infoImgMap.isEmpty()) {
+            if(m_warningShow){
+                QMessageBox::warning(this, "警告", "没有图片数据可以发送！");
+            }
+            else
+            {
+                setLogMsg("没有图片数据可以发送！");
+            }
+
+            m_reportHander->startTimer();
+            return;
+        }
+
+        // 配置报告生成器
+        HtmlReportGenerator::ReportConfig config;
+        config.title = "RGA Data analysis info";
+        config.greeting = "Hi,";
+        config.introduction = "The time alarm information is as follows:";
+        config.conclusion = "Please pay close attention to the above alarm information,"
+                            " analyze the abnormal causes and take corresponding measures in a timely manner.";
+        config.fontFamily = "Arial, 'Microsoft Yahei', sans-serif";
+        config.fontSize = 14;
+        config.titleFontSize = 20;
+        config.imageTitleFontSize = 16;
+
+        // 设置报告数据
+        HtmlReportGenerator::ReportData data;
+        /*
+        data.recipientName = "Admin";
+        data.reportTime = QDateTime::currentDateTime();
+        data.customIntroduction = "The following data anomalies have been detected:\n";
+        data.customIntroduction += QString("Device :%1,%2\n").arg(deviceName).arg(ratioName);
+        data.customIntroduction += QString("slotID:%1,lotID:%2").arg(slotID).arg(lotID);
+        data.customConclusion = "Please immediately check the operating status of the relevant equipment."
+                                " If necessary, contact the technical support team.";
+        */
+        // 使用 QStringList 方式设置多行内容
+        data.recipientName = "Admin";
+        data.customIntroductionLines.clear();
+        data.customIntroductionLines << "The following data anomalies have been detected:";
+        data.customIntroductionLines << ("deviceName:" + hostID + ",item:" + ratioName);
+        data.customIntroductionLines << ("chamberID:" + chamberID);
+        data.customIntroductionLines << ("RecipeName:" + RGARecipeName);
+        data.customIntroductionLines << ("currentValue:" + currentValue);
+        data.customIntroductionLines << ("slotID:" + slotID);
+        data.customIntroductionLines << ("lotID:" + lotID);
+        data.customIntroductionLines << ("recordTime:" + recordTime);
+
+        data.customConclusionLines.clear();
+        data.customConclusionLines << "Please immediately check the operating status of the relevant equipment";
+        data.customConclusionLines << "Analyze the causes of anomalies and take corresponding measures";
+        data.customConclusionLines << "Contact technical support if necessary";
+
+        // 生成HTML内容（嵌入图片）
+        //1.图片按顺序往下排
+        //QString htmlContent = HtmlReportGenerator::generateHtmlReport(infoImgMap, data, config);
+        //2.图片按表格排版
+        int rows = 3;
+        int cols = 3;
+        QString htmlContent = HtmlReportGenerator::generateHtmlReportV2(infoImgMap, data, config,rows,cols);
+        //存储测试【需要删除】
+        QString htmlFileName = QString("testMail_%1.html")
+                .arg(QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss_zzz"));
+        QFile file(htmlFileName);
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+            return;
+
+        QTextStream out(&file);
+        out << htmlContent << "\n";
+        file.close();
+
+        //邮件发送
+        EmailSender* mail = new EmailSender();
+        QString to = m_systemMap.value("to","170176354@qq.com").toString();
+        QString subject = m_systemMap.value("subject","Alarm Info Mail").toString();
+        mail->sendHtmlMail(to, subject, htmlContent);
+
+        //更新告警标志位
+        //m_reportHander->updateAlarmFlag(alramList);
+
+        //重启定时器
+        m_reportHander->startTimer();
+
+        /*
+        //图片[测试查看是否正确]
+        for (auto it = imagesALL.constBegin(); it != imagesALL.constEnd(); ++it) {
+            QString fileName = it.key();
+            // 清理文件名中的非法字符
+            fileName.replace("/", "_").replace("\\", "_").replace(":", "_");
+            fileName.replace("*", "_").replace("?", "_").replace("\"", "_");
+            fileName.replace("<", "_").replace(">", "_").replace("|", "_");
+
+            QString filePath = outputDir + "/" + fileName + ".png";
+            if (!it.value().save(filePath, "PNG")) {
+                qDebug() << "保存图片失败:" << filePath;
+                setLogMsg("保存图片失败:" + filePath);
+            } else {
+                qDebug() << "成功保存图片:" << filePath;
+                setLogMsg("成功保存图片:" + filePath);
+            }
+        }
+        */
+    }
+}
+
+void sFaultDetectionClassificationRGA::exportScatterPlotsToImages()
+{
+    // 方法1: 保存到文件
+    ScatterPlotRenderer::PlotConfig config;
+    config.width = 1000;
+    config.height = 800;
+    config.outputDir = QCoreApplication::applicationDirPath() + "/scatter_plots";
+    config.pointSize = 8;
+
+    QDate startDate = ui.dateEditStart->date();
+    QDate endDate = ui.dateEditEnd->date();
+    if (ScatterPlotRenderer::savePlotsToFile(startDate,endDate,mDataMap, config)) {
+        QMessageBox::information(this, "成功", "散点图已保存到: " + config.outputDir);
+    } else {
+        QMessageBox::warning(this, "失败", "保存散点图失败！");
+    }
+}
+
+// 方法2: 获取QImage列表用于其他用途
+QMap<QString, QImage> sFaultDetectionClassificationRGA::getScatterPlotImages()
+{
+    ScatterPlotRenderer::PlotConfig config;
+    config.width = 800;
+    config.height = 600;
+    config.pointSize = 6;
+
+    // 设置上下限值
+    config.down = 0.15;  // 下限值
+    config.up = 0.25;    // 上限值
+
+    return ScatterPlotRenderer::renderPlotsToImages(mDataMap, config);
+}
+
+// 方法3: 获取单个图片用于显示或进一步处理
+QImage sFaultDetectionClassificationRGA::getSingleScatterPlotImage(const QString &seriesName)
+{
+    if (!mDataMap.contains(seriesName)) {
+        return QImage();
+    }
+
+    const QList<QPair<QDateTime, double>> &data = mDataMap[seriesName];
+    ScatterPlotRenderer::PlotConfig config;
+    config.width = 800;
+    config.height = 600;
+
+    return ScatterPlotRenderer::renderSinglePlot(seriesName, data, config);
+}
+
+// 在你的类中使用示例
+void sFaultDetectionClassificationRGA::exportScatterPlotsWithLimits()
+{
+    ScatterPlotRenderer::PlotConfig config;
+    config.width = 1000;
+    config.height = 800;
+    config.outputDir = QCoreApplication::applicationDirPath() + "/scatter_plots";
+    config.pointSize = 8;
+
+    // 设置上下限值
+    config.down = 0.5;  // 下限值
+    config.up = 2.5;    // 上限值
+
+    // 显示上下限线
+    config.showLimits = true;
+
+    QDate startDate = ui.dateEditStart->date();
+    QDate endDate = ui.dateEditEnd->date();
+    if (ScatterPlotRenderer::savePlotsToFile(startDate,endDate,mDataMap, config)) {
+        QMessageBox::information(this, "成功", "散点图已保存到: " + config.outputDir);
+    } else {
+        QMessageBox::warning(this, "失败", "保存散点图失败！");
+    }
+}
+
+// 或者为不同系列设置不同的上下限
+void sFaultDetectionClassificationRGA::exportScatterPlotsWithCustomLimits()
+{
+    // 为每个数据系列创建不同的配置
+    for (auto it = mDataMap.constBegin(); it != mDataMap.constEnd(); ++it) {
+        QString seriesName = it.key();
+        const QList<QPair<QDateTime, double>> &data = it.value();
+
+        ScatterPlotRenderer::PlotConfig config;
+        config.width = 1000;
+        config.height = 800;
+        config.outputDir = QCoreApplication::applicationDirPath() + "/scatter_plots";
+        config.pointSize = 8;
+        config.showLimits = true;
+
+        // 根据系列名称设置不同的上下限
+        if (seriesName.contains("N2/Ar")) {
+            config.down = 0.1;
+            config.up = 1.0;
+        } else if (seriesName.contains("O2/H2O")) {
+            config.down = 0.0;
+            config.up = 0.5;
+        } else {
+            config.down = -1.0;
+            config.up = 1.0;
+        }
+
+        // 生成单个图表
+        QImage image = ScatterPlotRenderer::renderSinglePlot(seriesName, data, config);
+        if (!image.isNull()) {
+            QString fileName = config.outputDir + "/" + seriesName + ".png";
+            image.save(fileName, "PNG");
+        }
+    }
+}
+
+// -- html创建
+void sFaultDetectionClassificationRGA::sendHtmlReportEmail()
+{
+    // 假设你已经有了图片数据
+    QMap<QString, QImage> infoImgMap = getScatterPlotImages(); // 从之前的方法获取
+
+    if (infoImgMap.isEmpty()) {
+        QMessageBox::warning(this, "警告", "没有图片数据可以发送！");
+        return;
+    }
+
+    // 配置报告生成器
+    HtmlReportGenerator::ReportConfig config;
+    config.title = "RGA数据分析报警报告";
+    config.greeting = "您好：";
+    config.introduction = "时间报警信息如下：";
+    config.conclusion = "请及时关注以上报警信息，分析异常原因并采取相应措施。";
+    config.fontFamily = "Arial, 'Microsoft Yahei', sans-serif";
+    config.fontSize = 14;
+    config.titleFontSize = 20;
+    config.imageTitleFontSize = 16;
+
+    // 设置报告数据
+    HtmlReportGenerator::ReportData data;
+    data.recipientName = "管理员";
+    data.reportTime = QDateTime::currentDateTime();
+    data.customIntroduction = "检测到以下数据异常：";
+    data.customConclusion = "请立即检查相关设备运行状态，必要时联系技术支持。";
+
+    // 生成HTML内容（嵌入图片）
+    QString htmlContent = HtmlReportGenerator::generateHtmlReport(infoImgMap, data, config);
+
+    // 或者生成HTML并保存图片到文件
+    /*
+    QString outputDir = QCoreApplication::applicationDirPath() + "/reports";
+    QString htmlContent = HtmlReportGenerator::generateHtmlReportWithImageFiles(
+        infoImgMap, outputDir, data, config);
+    */
+
+    if (!htmlContent.isEmpty()) {
+        // 使用你现有的邮件发送功能发送HTML内容
+        sendEmailWithHtmlContent(htmlContent);
+        QMessageBox::information(this, "成功", "HTML报告已生成并发送！");
+    } else {
+        QMessageBox::warning(this, "失败", "生成HTML报告失败！");
+    }
+}
+
+// 发送HTML邮件的辅助函数
+void sFaultDetectionClassificationRGA::sendEmailWithHtmlContent(const QString& htmlContent)
+{
+    // 这里使用你现有的邮件发送类
+    EmailSender* mail = new EmailSender();
+
+    EmailSender::EmailConfig baseConf;
+    baseConf.smtpServer = "127.0.0.1";
+    baseConf.port = 25;
+    baseConf.username = "test2@ydmail.com";
+    baseConf.password = "123456";
+    baseConf.useSSL = false;
+    mail->initEmailConfig(baseConf);
+
+    EmailSender::EmailContent content;
+    content.to = "test1@ydmail.com";
+    content.cc << "manager@ydmail.com";
+    content.subject = "RGA数据分析报警报告 - " + QDateTime::currentDateTime().toString("yyyy-MM-dd");
+    content.htmlBody = htmlContent;
+
+//    if (mail->sendEmail(content)) {
+//        qDebug() << "HTML报告邮件发送成功";
+//    } else {
+//        qDebug() << "HTML报告邮件发送失败";
+//    }
+
+    delete mail;
+}
+
+// 保存报告到文件的示例
+void sFaultDetectionClassificationRGA::saveHtmlReportToFile()
+{
+    QMap<QString, QImage> infoImgMap = getScatterPlotImages();
+
+    if (infoImgMap.isEmpty()) {
+        QMessageBox::warning(this, "警告", "没有图片数据可以保存！");
+        return;
+    }
+
+    HtmlReportGenerator::ReportConfig config;
+    config.title = "RGA数据分析报告";
+    config.fontSize = 16; // 设置字体大小
+
+    HtmlReportGenerator::ReportData data;
+    data.recipientName = "技术团队";
+    data.reportTime = QDateTime::currentDateTime();
+
+    QString htmlContent = HtmlReportGenerator::generateHtmlReport(infoImgMap, data, config);
+
+    if (!htmlContent.isEmpty()) {
+        QString fileName = QCoreApplication::applicationDirPath() + "/report_" +
+                          QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss") + ".html";
+
+        QFile file(fileName);
+        if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QTextStream stream(&file);
+            stream.setCodec("UTF-8");
+            stream << htmlContent;
+            file.close();
+            QMessageBox::information(this, "成功", "报告已保存到: " + fileName);
+        } else {
+            QMessageBox::warning(this, "失败", "保存报告文件失败！");
+        }
+    }
+}
+
+void sFaultDetectionClassificationRGA::on_btnClearLog_clicked()
+{
+    ui.txtLog->clear();
+}
+
+void sFaultDetectionClassificationRGA::onShowHanderLogMsg(QString i_log)
+{
+    ui.txtLog->append(i_log);
+}
+
+void sFaultDetectionClassificationRGA::onSendDailyMail()
+{
+    //组建日常邮件
+    //1.当天可检测的全部数据
+    QDate dateStart = QDate::currentDate();
+    QDate dateEnd = QDate::currentDate();
+
+    //这边还要完善一下？？？- 因为测试数据没数据，这边实际还是最近查寻，需要修改
+    //ui.dateEditStart->setDate(dateStart);
+    //ui.dateEditEnd->setDate(dateEnd);
+    //ui.rBtnTimArea->setChecked(true);
+
+    QVariantList infoList = m_systemMap.value("daily_mail_items").toList();
+    if(infoList.count() == 0){
+        setLogMsg(tr("请在system.conf文件中配置日常邮件的条目!"));
+        return;
+    }
+
+    //全部数据的图片
+    QMap<QString, QImage> infoImgMap;
+    QString outputDir = QCoreApplication::applicationDirPath() + "/scatter_plots";
+    QString hostID = m_systemMap.value("host_id","North001").toString();
+
+    foreach (QVariant val, infoList)
+    {
+        QVariantMap itemMap = val.toMap();
+        setChkItem(itemMap);
+
+        QString chamberID = itemMap["chamberID"].toString();//TM1_CH1
+        QString name = itemMap["name"].toString();//N2/H2O
+        QMap<QString,QPair<QString,QString>> pairMap = m_chamerIDConf.value(chamberID);
+        QPair<QString,QString> clPair = pairMap.value(name);
+        QString lcl = clPair.first;
+        QString ucl = clPair.second;
+
+        int itemCount = ui.UI_CB_CHAMBERID->count();
+        QStringList itemTexts;
+        for (int var = 0; var < itemCount; ++var) {
+            itemTexts.append(ui.UI_CB_CHAMBERID->itemText(var));
+        }
+
+        int index = itemTexts.indexOf(chamberID);
+        if(index > 0){
+            ui.UI_CB_CHAMBERID->setCurrentIndex(index);
+        }
+
+        //2.加载数据
+        on_UI_PB_OK_FDC_clicked();
+        //3.后台绘制图片
+        ScatterPlotRenderer::PlotConfig config;
+        config.width = 1000;
+        config.height = 800;
+        config.outputDir = outputDir;
+        config.pointSize = 3;
+
+        // 设置上下限值
+        config.down = lcl.toDouble();  // 下限值
+        config.up = ucl.toDouble();    // 上限值
+
+        // 显示上下限线
+        config.showLimits = true;
+
+        //逻辑上只会有一个值
+        QMap<QString, QImage> images = ScatterPlotRenderer::renderPlotsToImages(mDataMap, config);
+
+        foreach (QString key, images.keys()) {
+            QImage img = images.value(key);
+
+            QString imgKey = key + "_" + dateStart.toString("MM_dd") + "-" + dateEnd.toString("MM_dd") + "-" + chamberID;
+            infoImgMap.insert(imgKey,img);
+        }
+    }
+
+    //创建邮件内容html
+    if (infoImgMap.isEmpty()) {
+        if(m_warningShow){
+            QMessageBox::warning(this, "警告", "没有图片数据可以发送！");
+        }
+        else
+        {
+            setLogMsg("没有图片数据可以发送！");
+        }
+
+        m_reportHander->startTimer();
+        return;
+    }
+
+    // 配置报告生成器
+    HtmlReportGenerator::ReportConfig config;
+    config.title = "Daily RGA Data analysis info";
+    config.greeting = "Hi,";
+    config.introduction = "The time daily information is as follows:";
+    config.conclusion = "Please pay close attention to the above daily information,"
+                        " analyze the abnormal causes and take corresponding measures in a timely manner.";
+    config.fontFamily = "Arial, 'Microsoft Yahei', sans-serif";
+    config.fontSize = 14;
+    config.titleFontSize = 20;
+    config.imageTitleFontSize = 16;
+
+    // 设置报告数据
+    HtmlReportGenerator::ReportData data;
+    data.recipientName = "Admin";
+    // 使用 QStringList 方式设置多行内容
+    data.customIntroductionLines.clear();
+    data.customIntroductionLines << "The following data anomalies have been detected:";
+    data.customIntroductionLines << ("deviceName:" + hostID);
+
+    data.customConclusionLines.clear();
+    data.customConclusionLines << "Please daily check the operating status of the relevant equipment";
+    data.customConclusionLines << "Analyze the causes of anomalies and take corresponding measures";
+    data.customConclusionLines << "Contact technical support if necessary";
+
+    // 生成HTML内容（嵌入图片）
+    //1.图片按顺序往下排
+    //QString htmlContent = HtmlReportGenerator::generateHtmlReport(infoImgMap, data, config);
+    //2.图片按表格排版
+    int imgCount = infoImgMap.count();
+    int rows = 2;
+    int cols = 2;
+    //设置表格布局图片
+    calculateGridDimensions(imgCount,rows,cols);
+    QString htmlContent = HtmlReportGenerator::generateHtmlReportV2(infoImgMap, data, config,rows,cols);
+    //存储测试【需要删除】
+    QString htmlFileName = QString("dailyMail_%1.html")
+            .arg(QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss_zzz"));
+    QFile file(htmlFileName);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+        return;
+
+    QTextStream out(&file);
+    out << htmlContent << "\n";
+    file.close();
+
+    //邮件发送
+    EmailSender* mail = new EmailSender();
+    QString to = m_systemMap.value("to","170176354@qq.com").toString();
+    QString subject = m_systemMap.value("subject","Daily Info Mail").toString();
+    mail->sendHtmlMail(to, subject, htmlContent);
+
+    //重启定时器
+    m_reportHander->startTimer();
+
+    //重置标志
+    m_isSendDailyOver = true;
+}
+
+void sFaultDetectionClassificationRGA::on_chkEnabledMail_clicked(bool checked)
+{
+    //自动邮件的时候QMessagebox不使能，只显示日志，而不出弹框
+    if(checked){
+        m_warningShow = false;
+    }
+    else
+    {
+        m_warningShow = true;
+    }
+
 }

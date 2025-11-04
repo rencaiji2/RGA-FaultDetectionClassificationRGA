@@ -1,4 +1,12 @@
 QT       += core gui charts sql network script xml
+# Windows平台支持
+win32 {
+    # 启用ActiveQt支持
+    QT += axcontainer
+
+    # 定义Windows宏
+    DEFINES += Q_OS_WIN
+}
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
